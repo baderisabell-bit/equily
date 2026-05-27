@@ -182,6 +182,16 @@ async function persistUploadedFile(params: {
     throw new Error(`Datei-Upload fehlgeschlagen: ${errorMsg}`);
   }
 
+  // Normalize to absolute URL for storage and return when possible
+  try {
+    const appUrl = String(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+    if (finalUrl && finalUrl.startsWith('/')) {
+      finalUrl = `${appUrl}${finalUrl}`;
+    }
+  } catch (e) {
+    // ignore and keep finalUrl as-is
+  }
+
   // Update database only for profile folder
   if (finalUrl && folder === 'uploads/profile') {
     try {
@@ -2624,7 +2634,7 @@ export async function getVerificationProfiles(params?: any) {
     }
 
     const q = await pool.query(
-      `SELECT u.id as user_id, u.email, u.role, up.display_name, up.zertifikate, up.profil_data, u.user_verifiziert as user_verifiziert, up.updated_at
+      `SELECT u.id as user_id, u.email, u.role, up.display_name, up.zertifikate, up.profil_data, up.updated_at
        FROM users u
        LEFT JOIN user_profiles up ON u.id = up.user_id
        WHERE (COALESCE(up.profil_data->>'uploadedCertificates','') <> '' OR COALESCE(up.profil_data->>'uploadedIdDocs','') <> '' OR array_length(up.zertifikate,1) IS NOT NULL)
@@ -2638,7 +2648,7 @@ export async function getVerificationProfiles(params?: any) {
       vorname: (row.profil_data && row.profil_data.vorname) || null,
       nachname: (row.profil_data && row.profil_data.nachname) || null,
       email: row.email,
-      verifiziert: Boolean(row.user_verifiziert),
+      verifiziert: Boolean(row.profil_data?.accountVerified ?? row.profil_data?.verifiziert ?? row.profil_data?.user_verifiziert ?? false),
       display_name: row.display_name || null,
       zertifikate: Array.isArray(row.zertifikate) ? row.zertifikate : [],
       profil_data: row.profil_data || {},
@@ -2671,19 +2681,13 @@ export async function updateVerificationStatus(paramsOrProfileId?: { adminCode?:
       return { success: false, error: 'Ungültige userId' };
     }
 
-    // Update users.user_verifiziert (if column exists) and ensure user_profiles.profil_data contains verifizierteZertifikate
-    try {
-      await pool.query('UPDATE users SET user_verifiziert = $1 WHERE id = $2', [accountVerified, userId]);
-    } catch (err) {
-      // ignore - column may not exist in some schemas
-      console.warn('Warning: Could not update users.user_verifiziert', String(err || ''));
-    }
-
     // Fetch existing profil_data
     const cur = await pool.query('SELECT profil_data FROM user_profiles WHERE user_id = $1 LIMIT 1', [userId]);
     const existing = cur.rows[0] && cur.rows[0].profil_data ? cur.rows[0].profil_data : {};
     const merged = {
       ...(typeof existing === 'object' ? existing : {}),
+      accountVerified,
+      verifiziert: accountVerified,
       verifizierteZertifikate: verifiedCertificates
       ,verifizierteUploadedCertificates: verifiedUploadedCertificates
       ,verifizierteUploadedIdDocs: verifiedUploadedIdDocs
