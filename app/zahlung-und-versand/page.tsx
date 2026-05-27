@@ -24,22 +24,23 @@ export default function ZahlungUndVersandPage() {
 
         <section className="bg-white border border-slate-200 rounded-[2rem] p-8 shadow-sm space-y-4">
           <h2 className="text-xl font-black italic uppercase text-slate-900">Bereitstellung von digitalen Inhalten</h2>
-          <p className="text-sm text-slate-600 leading-relaxed">
-            Die Bereitstellung der Inhalte erfolgt nur innerhalb von Deutschland. Für digitale Inhalte fallen keine Versandkosten an.
-          </p>
-          <p className="text-sm text-slate-600 leading-relaxed">
-            Digitale Inhalte werden Ihnen in Ihrem Kundenaccount bereitgestellt. Die Bereitstellung erfolgt innerhalb von 24 Stunden nach Vertragsschluss (bei vereinbarter Vorauszahlung nach dem Zeitpunkt Ihrer Zahlungsanweisung). Über die Bereitstellung werden Sie auch per E-Mail informiert.
-          </p>
+          <p className="text-sm text-slate-600 leading-relaxed">Die Bereitstellung der Inhalte erfolgt nur innerhalb von Deutschland.</p>
+          <p className="text-sm text-slate-600 leading-relaxed">Für digitale Inhalte (Daten, die in digitaler Form erstellt und bereitgestellt werden) fallen keine Versandkosten an.</p>
+          <p className="text-sm text-slate-600 leading-relaxed">Digitale Inhalte werden Ihnen in Ihrem Kundenaccount bereitgestellt. Die Bereitstellung erfolgt innerhalb von 24 Stunden nach Vertragsschluss (bei vereinbarter Vorauszahlung nach dem Zeitpunkt Ihrer Zahlungsanweisung). Über die Bereitstellung werden Sie auch per E-Mail informiert.</p>
         </section>
 
         <section className="bg-white border border-slate-200 rounded-[2rem] p-8 shadow-sm space-y-4">
           <h2 className="text-xl font-black italic uppercase text-slate-900">Akzeptierte Zahlungsmöglichkeiten</h2>
-          <p className="text-sm text-slate-600 leading-relaxed">Zahlung per SEPA-Lastschrift</p>
-          <p className="text-sm text-slate-600 leading-relaxed">Sofortüberweisung von GoCardless</p>
-          <p className="text-sm text-slate-600 leading-relaxed">Zahlung per PayPal</p>
-          <p className="text-sm text-slate-600 leading-relaxed">
-            Bei Zahlung per SEPA-Lastschrift ermächtigen Sie uns durch Erteilung eines entsprechenden SEPA-Mandats, den Rechnungsbetrag vom angegebenen Konto einzuziehen. Sie erhalten eine Vorabankündigung (Pre-Notification) mindestens 5 Tage vor dem Datum des Lastschrifteinzugs.
-          </p>
+          <ul className="list-disc list-inside text-sm text-slate-600 leading-relaxed">
+            <li>Zahlung per SEPA-Lastschrift</li>
+            <li>Sofortüberweisung von GoCardless</li>
+            <li>Zahlung per PayPal (PayPal Checkout)</li>
+          </ul>
+
+          <h3 className="text-lg font-black uppercase text-slate-900">Weitere Einzelheiten zur Zahlung</h3>
+          <p className="text-sm text-slate-600 leading-relaxed">Bei Zahlung per SEPA-Lastschrift ermächtigen Sie uns durch Erteilung eines entsprechenden SEPA-Mandats, den Rechnungsbetrag vom angegebenen Konto einzuziehen. Sie erhalten eine Vorabankündigung (Pre-Notification) mindestens 5 Tage vor dem Datum des Lastschrifteinzugs. Beachten Sie bitte, dass Sie verpflichtet sind für die ausreichende Deckung des Kontos zum angekündigten Datum zu sorgen.</p>
+
+          <p className="text-sm text-slate-600 leading-relaxed">Bei Fragen finden Sie unsere Kontaktdaten im Impressum.</p>
         </section>
       </main>
     </div>
