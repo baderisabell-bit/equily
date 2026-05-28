@@ -2,7 +2,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { registerUser, saveExpertProfileData, uploadProfileHorseImage, uploadCertificates, uploadIdentityVerification } from '../../actions';
+import { registerUser, saveExpertProfileData, uploadProfileHorseImage, uploadCertificates, uploadIdentityVerification, uploadProfileImage } from '../../actions';
+import MediaDropzone from '../../components/media-dropzone';
 import { 
   Camera, ChevronDown, ChevronUp, ShieldCheck, 
   MapPin, User, Mail, Lock, FileText, Check 
@@ -33,6 +34,7 @@ export default function RegistrierungExperte() {
   const [certificates, setCertificates] = useState<FileList | null>(null);
   const [idProof, setIdProof] = useState<FileList | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [profileImage, setProfileImage] = useState<File | null>(null);
   const [openSection, setOpenSection] = useState<string | null>("FN-Abzeichen");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [zertifikatFreitext, setZertifikatFreitext] = useState<Record<string, string>>({});
@@ -206,6 +208,18 @@ export default function RegistrierungExperte() {
         alert('Benutzer konnte nicht erstellt werden.');
         setUploading(false);
         return;
+      }
+
+      // Upload optional profile image during registration
+      if (profileImage) {
+        try {
+          const imgForm = new FormData();
+          imgForm.append('file', profileImage);
+          const imgRes = await uploadProfileImage(userId, imgForm);
+          if (!imgRes.success) console.warn('Profilbild Upload fehlgeschlagen:', imgRes.error);
+        } catch (err) {
+          console.error('Profilbild Upload Exception:', err);
+        }
       }
 
       const payload = {
@@ -973,7 +987,20 @@ export default function RegistrierungExperte() {
         <section className="bg-slate-900 rounded-[2.25rem] p-7 text-white shadow-2xl space-y-6">
           <h2 className="text-lg font-black uppercase italic text-emerald-400">4. Private Daten & Sicherheit</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
+            <div>
+              <MediaDropzone
+                title="Profilbild hochladen (optional)"
+                description="Ziehe ein Profilbild hierhin oder klicke, um auszuwählen."
+                accept="image/*"
+                multiple={false}
+                onFiles={(files) => {
+                  setProfileImage(files && files.length > 0 ? files[0] : null);
+                  return Promise.resolve();
+                }}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="vorname" className="block text-[10px] font-bold uppercase text-white/70 mb-1">Vorname</label>
               <input

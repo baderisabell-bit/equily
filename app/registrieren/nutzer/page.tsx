@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from 'react';
-import { registerUser, saveUserProfileData, uploadProfileHorseImage } from '../../actions';
+import { registerUser, saveUserProfileData, uploadProfileHorseImage, uploadProfileImage } from '../../actions';
+import MediaDropzone from '../../components/media-dropzone';
 import Link from 'next/link';
 import { Camera, Check, FileText, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
 import { ANGEBOT_KATEGORIEN, ZERTIFIKAT_KATEGORIEN } from '../../suche/kategorien-daten';
@@ -31,6 +32,7 @@ export default function RegistrierungNutzer() {
 
   // Certificates and ID verification are uploaded after login in the user profile (admin-only access to files)
   const [uploading, setUploading] = useState(false);
+  const [profileImage, setProfileImage] = useState<File | null>(null);
   const [pferde, setPferde] = useState<Array<{ name: string; rasse: string; alter: string; beschreibung: string; bilder: File[] }>>([
     { name: '', rasse: '', alter: '', beschreibung: '', bilder: [] }
   ]);
@@ -229,6 +231,17 @@ export default function RegistrierungNutzer() {
       }
 
       if (res.userId) {
+        // Upload optional profile image during registration
+        if (profileImage) {
+          try {
+            const imgForm = new FormData();
+            imgForm.append('file', profileImage);
+            const imgRes = await uploadProfileImage(res.userId, imgForm);
+            if (!imgRes.success) console.warn('Profilbild Upload fehlgeschlagen:', imgRes.error);
+          } catch (err) {
+            console.error('Profilbild Upload Exception:', err);
+          }
+        }
         // Certificates and ID uploads are intentionally NOT handled during registration.
         // Users should log in and upload documents from their profile/settings page instead.
 
@@ -325,6 +338,18 @@ export default function RegistrierungNutzer() {
           <section className="bg-white rounded-[2rem] p-7 shadow-sm border border-slate-100">
             <h2 className="text-lg font-black uppercase italic mb-6 text-emerald-600">1. Profilname & Kurzprofil</h2>
             <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <MediaDropzone
+                    title="Profilbild hochladen (optional)"
+                    description="Ziehe ein Profilbild hierhin oder klicke, um auszuwählen."
+                    accept="image/*"
+                    multiple={false}
+                    onFiles={(files) => {
+                      setProfileImage(files && files.length > 0 ? files[0] : null);
+                      return Promise.resolve();
+                    }}
+                  />
+                </div>
                 <label htmlFor="profilName" className="block text-[10px] font-bold uppercase text-slate-600 mb-1">Profilname</label>
                 <input
                   id="profilName"
