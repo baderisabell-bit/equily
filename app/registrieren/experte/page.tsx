@@ -1187,6 +1187,7 @@ export default function RegistrierungExperte() {
               Zum Einloggen
             </Link>
           </p>
+          </div>
         </section>
       </main>
     </div>
