@@ -18,6 +18,8 @@ import {
   getStoredProfileData,
   saveGalerieItems,
   saveUserProfileData,
+  uploadCertificates,
+  uploadIdentityVerification,
   uploadGalerieMedia,
   uploadNetworkMedia,
   uploadProfileHorseImage,
@@ -150,6 +152,8 @@ export default function NutzerProfilAnpassen() {
   const [gesuche, setGesuche] = useState<GesuchItem[]>([]);
   const [pferde, setPferde] = useState<PferdItem[]>([{ ...EMPTY_PFERD }]);
   const [galerie, setGalerie] = useState<GalerieItem[]>([]);
+  const [uploadedCertificates, setUploadedCertificates] = useState<string[]>([]);
+  const [uploadedIdDocs, setUploadedIdDocs] = useState<string[]>([]);
   const [profilePosts, setProfilePosts] = useState<ProfilePost[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData>(EMPTY_ANALYTICS);
   const [profileStats, setProfileStats] = useState<ProfileStats>(EMPTY_PROFILE_STATS);
@@ -160,6 +164,7 @@ export default function NutzerProfilAnpassen() {
   const [postMediaItems, setPostMediaItems] = useState<PostMediaItem[]>([]);
   const [creatingPost, setCreatingPost] = useState(false);
   const [uploadingPostMedia, setUploadingPostMedia] = useState(false);
+  const [uploadingDocuments, setUploadingDocuments] = useState(false);
 
   const completion = useMemo(() => {
     const checks = [
@@ -209,6 +214,8 @@ export default function NutzerProfilAnpassen() {
         setOrt(String(res.data.ort || ""));
         setBio(String(profilData.profilBeschreibung || res.data.suche_text || ""));
         setInteressen(Array.isArray(res.data.kategorien) ? res.data.kategorien.map((item: any) => String(item || "").trim()).filter(Boolean) : []);
+        setUploadedCertificates(Array.isArray(profilData.uploadedCertificates) ? profilData.uploadedCertificates.map((item: any) => String(item || "").trim()).filter(Boolean) : []);
+        setUploadedIdDocs(Array.isArray(profilData.uploadedIdDocs) ? profilData.uploadedIdDocs.map((item: any) => String(item || "").trim()).filter(Boolean) : []);
 
         if (res.data.gesuche && typeof res.data.gesuche === "object") {
           setGesuche(
@@ -319,11 +326,7 @@ export default function NutzerProfilAnpassen() {
     }
   };
 
-  const handleSave = async () => {
-    if (!userId) return;
-    resetStatus();
-    setSaving(true);
-
+  const buildProfileSavePayload = (overrides: { uploadedCertificates?: string[]; uploadedIdDocs?: string[] } = {}) => {
     const validePferde = pferde.map((item) => ({
       name: item.name.trim(),
       rasse: item.rasse.trim(),
@@ -338,12 +341,8 @@ export default function NutzerProfilAnpassen() {
       acc[item.kategorie] = { titel: item.titel, inhalt: item.inhalt };
       return acc;
     }, {});
-    const sucheText = [
-      bio.trim(),
-      ...gesuche.map((item) => `${item.kategorie}: ${item.titel} ${item.inhalt}`.trim()).filter(Boolean),
-    ].filter(Boolean).join(" | ");
 
-    const res = await saveUserProfileData(userId, {
+    return {
       profilName: `${vorname} ${nachname}`.trim(),
       profilBeschreibung: bio,
       vorname,
@@ -352,7 +351,7 @@ export default function NutzerProfilAnpassen() {
       plz,
       kategorien: interessen,
       gesuche: gesuchePayload,
-      sucheText,
+      sucheText: [bio.trim(), ...gesuche.map((item) => `${item.kategorie}: ${item.titel} ${item.inhalt}`.trim()).filter(Boolean)].filter(Boolean).join(" | "),
       pferdName: erstesPferd.name,
       pferdRasse: erstesPferd.rasse,
       pferdAlter: erstesPferd.alter,
@@ -360,7 +359,18 @@ export default function NutzerProfilAnpassen() {
       pferdBilder: erstesPferd.bilder,
       pferde: validePferde,
       galerie,
-    });
+      uploadedCertificates,
+      uploadedIdDocs,
+      ...overrides,
+    };
+  };
+
+  const handleSave = async () => {
+    if (!userId) return;
+    resetStatus();
+    setSaving(true);
+
+    const res = await saveUserProfileData(userId, buildProfileSavePayload());
 
     setSaving(false);
     if (!res.success) {
@@ -458,6 +468,82 @@ export default function NutzerProfilAnpassen() {
     }
     setGalerie(next);
     setSuccess("Galerie aktualisiert.");
+  };
+
+  const handleCertificateUpload = async (files: File[]) => {
+    if (!userId || files.length === 0) return;
+
+    resetStatus();
+    setUploadingDocuments(true);
+
+    const next = [...uploadedCertificates];
+    const errors: string[] = [];
+
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append("file", file);
+      const uploadRes = await uploadCertificates(userId, formData);
+      if (uploadRes.success && uploadRes.url) {
+        next.push(String(uploadRes.url));
+      } else {
+        errors.push(`${file.name}: ${uploadRes.error || "Upload fehlgeschlagen."}`);
+      }
+    }
+
+    if (next.length === uploadedCertificates.length) {
+      setUploadingDocuments(false);
+      if (errors.length > 0) setError(errors.slice(0, 2).join(" "));
+      return;
+    }
+
+    const saveRes = await saveUserProfileData(userId, buildProfileSavePayload({ uploadedCertificates: next }));
+    setUploadingDocuments(false);
+    if (!saveRes.success) {
+      setError(saveRes.error || "Zertifikate konnten nicht gespeichert werden.");
+      return;
+    }
+
+    setUploadedCertificates(next);
+    setSuccess("Zertifikate hochgeladen.");
+    if (errors.length > 0) setError(errors.slice(0, 2).join(" "));
+  };
+
+  const handleIdDocUpload = async (files: File[]) => {
+    if (!userId || files.length === 0) return;
+
+    resetStatus();
+    setUploadingDocuments(true);
+
+    const next = [...uploadedIdDocs];
+    const errors: string[] = [];
+
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append("file", file);
+      const uploadRes = await uploadIdentityVerification(userId, formData);
+      if (uploadRes.success && uploadRes.url) {
+        next.push(String(uploadRes.url));
+      } else {
+        errors.push(`${file.name}: ${uploadRes.error || "Upload fehlgeschlagen."}`);
+      }
+    }
+
+    if (next.length === uploadedIdDocs.length) {
+      setUploadingDocuments(false);
+      if (errors.length > 0) setError(errors.slice(0, 2).join(" "));
+      return;
+    }
+
+    const saveRes = await saveUserProfileData(userId, buildProfileSavePayload({ uploadedIdDocs: next }));
+    setUploadingDocuments(false);
+    if (!saveRes.success) {
+      setError(saveRes.error || "Ausweis konnte nicht gespeichert werden.");
+      return;
+    }
+
+    setUploadedIdDocs(next);
+    setSuccess("Ausweis hochgeladen.");
+    if (errors.length > 0) setError(errors.slice(0, 2).join(" "));
   };
 
   const toggleInteresse = (value: string) => {
@@ -876,17 +962,16 @@ export default function NutzerProfilAnpassen() {
               </div>
             </section>
 
-            <section className="bg-white border border-slate-200 rounded-[2rem] p-8 shadow-sm space-y-4">
+            <section className="bg-white border border-slate-200 rounded-[2rem] p-8 shadow-sm space-y-5">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Profil</p>
                 <h2 className="mt-2 text-xl font-black italic uppercase">Galerie</h2>
-                <p className="mt-2 text-sm text-slate-600">Bilder und Videos für einen besseren Eindruck deiner Arbeit auf deinem Profil.</p>
               </div>
 
               {galerie.length > 0 ? (
                 <div className="flex flex-wrap gap-3">
                   {galerie.map((item, idx) => (
-                    <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 group">
+                    <div key={`${item.url}-${idx}`} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 group">
                       {item.type === "image" ? (
                         <img src={item.url} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -940,6 +1025,62 @@ export default function NutzerProfilAnpassen() {
                 buttonLabel={uploadingGalerie ? "Lade hoch..." : "Dateien auswählen"}
                 busyLabel="Lade hoch..."
                 onFiles={handleGalerieUpload}
+              />
+            </section>
+
+            <section className="bg-white border border-slate-200 rounded-[2rem] p-8 shadow-sm space-y-5">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Verifizierung</p>
+                <h2 className="mt-2 text-xl font-black italic uppercase">Ausweis & Zertifikate</h2>
+                <p className="mt-2 text-sm text-slate-600">Diese Dateien werden im Adminbereich angezeigt und dort freigegeben.</p>
+              </div>
+
+              {uploadedIdDocs.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ausweisdateien</p>
+                  <div className="flex flex-wrap gap-2">
+                    {uploadedIdDocs.map((url) => (
+                      <a key={url} href={url} target="_blank" rel="noreferrer" className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-700 underline underline-offset-2">
+                        {url.split('/').pop() || 'Ausweis'}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <MediaDropzone
+                title="Ausweis hochladen"
+                description="Foto, Scan oder PDF. Die Datei ist danach im Adminbereich sichtbar."
+                accept="image/*,.pdf"
+                multiple
+                disabled={uploadingDocuments || !userId}
+                buttonLabel={uploadingDocuments ? "Lädt..." : "Ausweis auswählen"}
+                busyLabel="Lädt..."
+                onFiles={handleIdDocUpload}
+              />
+
+              {uploadedCertificates.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Zertifikatsdateien</p>
+                  <div className="flex flex-wrap gap-2">
+                    {uploadedCertificates.map((url) => (
+                      <a key={url} href={url} target="_blank" rel="noreferrer" className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-700 underline underline-offset-2">
+                        {url.split('/').pop() || 'Zertifikat'}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <MediaDropzone
+                title="Zertifikate hochladen"
+                description="Urkunden und Nachweise zur Admin-Prüfung."
+                accept="image/*,.pdf"
+                multiple
+                disabled={uploadingDocuments || !userId}
+                buttonLabel={uploadingDocuments ? "Lädt..." : "Zertifikate auswählen"}
+                busyLabel="Lädt..."
+                onFiles={handleCertificateUpload}
               />
             </section>
 
