@@ -1797,6 +1797,8 @@ export async function getSearchFeed(userId: number | null, filters: any): Promis
       const categories = uniqueStrings([
         ...(Array.isArray(row.kategorien) ? row.kategorien : []),
         ...(Array.isArray(profileData?.kategorien) ? profileData.kategorien : []),
+        ...(Array.isArray(profileData?.themen) ? profileData.themen : []),
+        ...(Array.isArray(profileData?.interessenThemen) ? profileData.interessenThemen : []),
       ]);
       const searchBundle = normalizeSearchValue([
         row.display_name,

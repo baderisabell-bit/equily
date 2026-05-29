@@ -83,9 +83,10 @@ function buildCategoryOptions(): CategoryOption[] {
     themen: Array.isArray(category.themen)
       ? category.themen.flatMap((entry) => {
           if (typeof entry === "string") return [entry];
-          const base = [String(entry?.name || "").trim()].filter(Boolean);
+          const baseName = String(entry?.name || "").trim();
+          const base = baseName ? [baseName] : [];
           const subs = Array.isArray(entry?.subs) ? entry.subs.map((item) => String(item || "").trim()).filter(Boolean) : [];
-          return [...base, ...subs];
+          return [...base, ...subs.map((sub) => `${baseName}: ${sub}`)];
         })
       : [],
   }));
@@ -445,6 +446,8 @@ function SuchseiteContent() {
 
     if (selectedThemes.length > 0) {
       result = result.filter((entry) => entry.kategorien.some((cat) => selectedThemeSet.has(cat)));
+    } else if (selectedCategory) {
+      result = result.filter((entry) => entry.kategorien.some((cat) => normalizeText(cat) === normalizeText(selectedCategory)));
     }
 
     return result;

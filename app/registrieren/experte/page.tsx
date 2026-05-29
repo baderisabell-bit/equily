@@ -13,6 +13,28 @@ import { ZERTIFIKAT_KATEGORIEN, ANGEBOT_KATEGORIEN, } from '../../suche/kategori
 
 const FREE_EXPERT_HORSE_LIMIT = 2;
 
+function buildExpertThemeSet() {
+  const themes = new Set<string>();
+
+  for (const category of ANGEBOT_KATEGORIEN) {
+    themes.add(String(category.label || '').trim());
+    for (const theme of Array.isArray(category.themen) ? category.themen : []) {
+      if (typeof theme === 'string') {
+        themes.add(theme.trim());
+        continue;
+      }
+      const baseName = String(theme?.name || '').trim();
+      if (baseName) themes.add(baseName);
+      for (const sub of Array.isArray(theme?.subs) ? theme.subs : []) {
+        const normalizedSub = String(sub || '').trim();
+        if (baseName && normalizedSub) themes.add(`${baseName}: ${normalizedSub}`);
+      }
+    }
+  }
+
+  return themes;
+}
+
 export default function RegistrierungExperte() {
   const [formData, setFormData] = useState({
     // Sektion 1: Gewerbe
@@ -223,6 +245,8 @@ export default function RegistrierungExperte() {
         return;
       }
 
+      const expertThemeSet = buildExpertThemeSet();
+
       // Upload optional profile image during registration
       if (profileImage) {
         try {
@@ -243,6 +267,7 @@ export default function RegistrierungExperte() {
         ort: formData.gewerbeOrt,
         plz: formData.gewerbePlz,
         angebote: formData.angebote,
+        themen: formData.zertifikate.filter((item) => expertThemeSet.has(item)),
         zertifikate: formData.zertifikate,
         angebotText: formData.angebote.join(', '),
         freitextBeschreibung: formData.freitextBeschreibung,

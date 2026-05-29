@@ -44,5 +44,6 @@ next-env.d.ts
 !/public/uploads/.gitkeep
 .env*.local
 /backups/
+datenbank_backup.sql
 /.uploads/*
 !/.uploads/.gitkeep
