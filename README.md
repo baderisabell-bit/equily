@@ -34,3 +34,17 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Händlerbund Integration
+
+Setze ein Environment-Variable `HAENDLERBUND_TOKEN`, damit die Seiten `Impressum`, `AGB`, `Widerrufsbelehrung`, `Zahlung-und-Versand` und `Datenschutz` automatisch die Texte vom Händlerbund laden.
+
+- In der Entwicklungsumgebung: Erstelle eine `.env.local` Datei und füge hinzu:
+
+```bash
+HAENDLERBUND_TOKEN=dein_token_hier
+# optional: HAENDLERBUND_API_BASE=https://api.haendlerbund.de
+```
+
+- Danach Next.js neu starten (`npm run dev` / `pnpm dev`). Wenn kein Token gesetzt ist oder die API nicht erreichbar ist, zeigen die Seiten weiterhin die vorhandenen statischen Texte als Fallback an.
+

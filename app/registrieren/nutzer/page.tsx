@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { registerUser, saveUserProfileData, uploadProfileHorseImage, uploadProfileImage } from '../../actions';
 import MediaDropzone from '../../components/media-dropzone';
 import Link from 'next/link';
@@ -33,6 +33,7 @@ export default function RegistrierungNutzer() {
   // Certificates and ID verification are uploaded after login in the user profile (admin-only access to files)
   const [uploading, setUploading] = useState(false);
   const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [profileImagePreviewUrl, setProfileImagePreviewUrl] = useState('');
   const [pferde, setPferde] = useState<Array<{ name: string; rasse: string; alter: string; beschreibung: string; bilder: File[] }>>([
     { name: '', rasse: '', alter: '', beschreibung: '', bilder: [] }
   ]);
@@ -49,6 +50,18 @@ export default function RegistrierungNutzer() {
       return next;
     });
   };
+
+  useEffect(() => {
+    if (!profileImage) {
+      setProfileImagePreviewUrl('');
+      return;
+    }
+
+    const nextPreviewUrl = URL.createObjectURL(profileImage);
+    setProfileImagePreviewUrl(nextPreviewUrl);
+
+    return () => URL.revokeObjectURL(nextPreviewUrl);
+  }, [profileImage]);
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
@@ -341,7 +354,7 @@ export default function RegistrierungNutzer() {
                 <div>
                   <MediaDropzone
                     title="Profilbild hochladen (optional)"
-                    description="Ziehe ein Profilbild hierhin oder klicke, um auszuwählen."
+                    description="Ziehe ein Profilbild hierhin oder klicke, um auszuwählen. Es wird sofort oben angezeigt."
                     accept="image/*"
                     multiple={false}
                     onFiles={(files) => {
@@ -350,6 +363,17 @@ export default function RegistrierungNutzer() {
                     }}
                   />
                 </div>
+                {profileImagePreviewUrl && (
+                  <div className="flex justify-center md:justify-start pt-1">
+                    <div className="relative h-28 w-28 overflow-hidden rounded-3xl border-4 border-white shadow-[0_14px_45px_rgba(16,185,129,0.18)] bg-slate-100">
+                      <img
+                        src={profileImagePreviewUrl}
+                        alt="Profilbild Vorschau"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  </div>
+                )}
                 <label htmlFor="profilName" className="block text-[10px] font-bold uppercase text-slate-600 mb-1">Profilname</label>
                 <input
                   id="profilName"

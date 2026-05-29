@@ -35,6 +35,7 @@ export default function RegistrierungExperte() {
   const [idProof, setIdProof] = useState<FileList | null>(null);
   const [uploading, setUploading] = useState(false);
   const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [profileImagePreviewUrl, setProfileImagePreviewUrl] = useState('');
   const [openSection, setOpenSection] = useState<string | null>("FN-Abzeichen");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [zertifikatFreitext, setZertifikatFreitext] = useState<Record<string, string>>({});
@@ -50,6 +51,18 @@ export default function RegistrierungExperte() {
     textarea.style.height = '0px';
     textarea.style.height = `${textarea.scrollHeight}px`;
   }, [formData.freitextBeschreibung]);
+
+  useEffect(() => {
+    if (!profileImage) {
+      setProfileImagePreviewUrl('');
+      return;
+    }
+
+    const nextPreviewUrl = URL.createObjectURL(profileImage);
+    setProfileImagePreviewUrl(nextPreviewUrl);
+
+    return () => URL.revokeObjectURL(nextPreviewUrl);
+  }, [profileImage]);
 
   const setFormValue = (key: keyof typeof formData, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -379,6 +392,42 @@ export default function RegistrierungExperte() {
         <section className="bg-white rounded-[2rem] p-7 shadow-sm border border-slate-100">
           <h2 className="text-lg font-black uppercase italic mb-6 text-emerald-600">1. Gewerbedaten (Impressum)</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-3 space-y-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Profilbild</p>
+              <MediaDropzone
+                title="Profilbild hochladen (optional)"
+                description="Ziehe ein Profilbild hierhin oder klicke, um auszuwählen. Das Bild erscheint direkt im Feld darunter."
+                accept="image/*"
+                multiple={false}
+                onFiles={(files) => {
+                  setProfileImage(files && files.length > 0 ? files[0] : null);
+                  return Promise.resolve();
+                }}
+              />
+              <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4 shadow-inner">
+                <div className="flex items-center gap-4">
+                  <div className="relative h-24 w-24 overflow-hidden rounded-3xl border-4 border-white bg-slate-100 shadow-lg shrink-0">
+                    {profileImagePreviewUrl ? (
+                      <img
+                        src={profileImagePreviewUrl}
+                        alt="Profilbild Vorschau"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-center px-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Noch kein Bild
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-black uppercase tracking-widest text-slate-800">Vorschau</p>
+                    <p className="text-[10px] leading-relaxed font-semibold text-slate-500">
+                      Hier wird dein Profilbild sofort angezeigt, sobald du es ausgewählt hast.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div className="md:col-span-2 grid grid-cols-1 gap-3">
               <input
                 id="gewerbeName"
@@ -988,18 +1037,6 @@ export default function RegistrierungExperte() {
           <h2 className="text-lg font-black uppercase italic text-emerald-400">4. Private Daten & Sicherheit</h2>
           
           <div className="space-y-4">
-            <div>
-              <MediaDropzone
-                title="Profilbild hochladen (optional)"
-                description="Ziehe ein Profilbild hierhin oder klicke, um auszuwählen."
-                accept="image/*"
-                multiple={false}
-                onFiles={(files) => {
-                  setProfileImage(files && files.length > 0 ? files[0] : null);
-                  return Promise.resolve();
-                }}
-              />
-            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="vorname" className="block text-[10px] font-bold uppercase text-white/70 mb-1">Vorname</label>
