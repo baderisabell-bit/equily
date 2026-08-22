@@ -2718,7 +2718,58 @@ export type HomeHubData = {
 };
 
 export async function getHomeHubData(userId: number | null): Promise<HomeHubData> {
-  return { success: true, data: {}, newcomers: [], topTen: [], weeklyAds: [], managedAds: [], wallOfShame: [] };
+  try {
+    const viewer = userId && Number.isInteger(userId) && userId > 0
+      ? await pool.query(
+          `SELECT COALESCE(up.ort, '') AS ort
+           FROM users u LEFT JOIN user_profiles up ON up.user_id = u.id
+           WHERE u.id = $1 LIMIT 1`,
+          [userId]
+        )
+      : null;
+    const profiles = await pool.query(
+      `SELECT
+         u.id,
+         COALESCE(up.display_name, u.name, u.email, 'Benutzer ' || u.id::text) AS display_name,
+         COALESCE(up.role, u.role, 'nutzer') AS role,
+         COALESCE(up.ort, '') AS ort,
+         COALESCE(up.profil_data, '{}'::jsonb) AS profil_data,
+         u.created_at
+       FROM users u
+       LEFT JOIN user_profiles up ON up.user_id = u.id
+       ORDER BY u.created_at DESC NULLS LAST, u.id DESC
+       LIMIT 100`
+    );
+
+    const items = (profiles.rows || []).map((row: Record<string, unknown>) => {
+      const profileData = row.profil_data && typeof row.profil_data === 'object' ? row.profil_data as Record<string, unknown> : {};
+      return {
+        id: Number(row.id),
+        vorname: String(profileData.vorname || row.display_name || ''),
+        nachname: String(profileData.nachname || ''),
+        display_name: String(row.display_name || ''),
+        role: String(row.role || 'nutzer'),
+        ort: String(row.ort || ''),
+        verifiziert: Boolean(profileData.verifiziert || profileData.accountVerified),
+        created_at: row.created_at || null,
+        nearby_reason: 'Im Umkreis von 100 km',
+      };
+    });
+
+    return {
+      success: true,
+      data: {},
+      viewerOrt: String(viewer?.rows?.[0]?.ort || '').trim() || null,
+      newcomers: items.slice(0, 10),
+      topTen: items.filter((item) => item.id !== userId),
+      weeklyAds: [],
+      managedAds: [],
+      wallOfShame: [],
+    };
+  } catch (error: any) {
+    console.error('getHomeHubData error:', error);
+    return { success: false, data: {}, newcomers: [], topTen: [], weeklyAds: [], managedAds: [], wallOfShame: [] };
+  }
 }
 
 export async function submitAnimalWelfareStatement(userIdOrObj: number | { userId?: number; caseId?: number; data?: any; statement?: string }, data?: any): Promise<any> {

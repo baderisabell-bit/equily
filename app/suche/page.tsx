@@ -526,19 +526,9 @@ function SuchseiteContent() {
               <Link href="/" className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">
                 Startseite
               </Link>
-              {role === "experte" ? (
-                <Link href="/dashboard/experte" className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">
-                  Dashboard
-                </Link>
-              ) : null}
               <button type="button" onClick={openProfile} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">
                 Mein Profil
               </button>
-              {role === "experte" ? (
-                <Link href="/dashboard/experte/schueler" className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">
-                  Schüler &amp; Kunden
-                </Link>
-              ) : null}
               <Link href="/suche" className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">
                 Suche
               </Link>

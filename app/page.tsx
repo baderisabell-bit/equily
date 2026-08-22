@@ -184,7 +184,9 @@ export default function Startseite() {
       return a.index - b.index;
     });
 
-    return withMeta.map((entry) => entry.item);
+    return withMeta
+      .filter((entry) => typeof entry.distance === 'number' && entry.distance <= 100)
+      .map((entry) => entry.item);
   }, [topTen, nearbyDistancesKm]);
 
   useEffect(() => {
@@ -576,9 +578,7 @@ export default function Startseite() {
           <div className="flex justify-between items-center mb-10 text-emerald-600 font-black italic tracking-tighter">MENÜ <button onClick={() => setSidebarOpen(false)} className="text-slate-300">×</button></div>
           <nav className="space-y-6 flex-grow">
             <Link href="/" className="block text-xl font-black italic uppercase text-slate-800 hover:text-emerald-600">Startseite</Link>
-            {isExpertRole && <Link href="/dashboard/experte" className="block text-xl font-black italic uppercase text-slate-800 hover:text-emerald-600">Dashboard</Link>}
             <button type="button" onClick={openProfile} className="w-full text-left text-xl font-black italic uppercase text-slate-800 hover:text-emerald-600">Mein Profil</button>
-            <Link href="/dashboard/experte/schueler" className="block text-xl font-black italic uppercase text-slate-800 hover:text-emerald-600">Schüler und Kunden</Link>
             <Link href="/suche" className="block text-xl font-black italic uppercase text-slate-800 hover:text-emerald-600">Suche</Link>
             <Link href="/netzwerk" className="block text-xl font-black italic uppercase text-slate-800 hover:text-emerald-600">Netzwerk</Link>
             <Link href="/nachrichten" className="block text-xl font-black italic uppercase text-slate-800 hover:text-emerald-600">Nachrichten</Link>

@@ -35,8 +35,6 @@ import {
   getWishlistedOfferIds,
   toggleProfileOfferWishlist,
   trackProfileOfferViews,
-  getUserPromotionSettings,
-  purchaseVisibilityPromotion,
   uploadNetworkMedia,
   reportPublicProfile,
   persistProfileImageUrl
@@ -96,27 +94,6 @@ type ProfilePostItem = {
   media_items: GalerieItem[];
 };
 
-type ProfilePromotionOption = {
-  scope: 'angebote' | 'suchen' | 'wochenwerbung';
-  label: string;
-  durationDays: number;
-  chargeCents: number;
-  allowed: boolean;
-  reason: string;
-  includedAvailable: boolean;
-  usageCount: number;
-  activeUntil?: string | null;
-  paymentMethod: 'sepa' | 'paypal';
-};
-
-type ProfilePromotionSettings = {
-  plan_key: string;
-  plan_label: string;
-  payment_method: 'sepa' | 'paypal';
-  lifetime_free_access?: boolean;
-  options: ProfilePromotionOption[];
-};
-
 const EXPERT_PROFILE_CATEGORIES = [
   'Reitunterricht',
   'Beritt',
@@ -154,7 +131,7 @@ export default function PublicProfilePage() {
   const [ratingOfferId, setRatingOfferId] = useState('');
   const [ratingBusy, setRatingBusy] = useState(false);
   const [lightboxItem, setLightboxItem] = useState<GalerieItem | null>(null);
-  const [activeTab, setActiveTab] = useState<'beitraege' | 'anzeigen' | 'werbung' | 'team' | 'schulpferde'>('anzeigen');
+  const [activeTab, setActiveTab] = useState<'beitraege' | 'anzeigen' | 'team' | 'schulpferde'>('anzeigen');
   const [offerVisibilityFilter, setOfferVisibilityFilter] = useState<'public' | 'draft'>('public');
   const [viewingDrafts, setViewingDrafts] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -201,7 +178,6 @@ export default function PublicProfilePage() {
     plz: '',
     mainText: '',
     description: '',
-    werbungText: '',
     profilbildUrl: '',
     website: '',
     profilbildPositionX: 50,
@@ -216,35 +192,9 @@ export default function PublicProfilePage() {
   const [searchVisibilityFilter, setSearchVisibilityFilter] = useState<'public' | 'draft'>('public');
   const [wishlistedOfferIds, setWishlistedOfferIds] = useState<string[]>([]);
   const [offerActionBusyId, setOfferActionBusyId] = useState<string | null>(null);
-  const [promotionSettings, setPromotionSettings] = useState<ProfilePromotionSettings | null>(null);
-  const [boostBusyOfferId, setBoostBusyOfferId] = useState<string | null>(null);
-  const [promotionError, setPromotionError] = useState('');
-  const [promotionSuccess, setPromotionSuccess] = useState('');
   const normalizedViewerRole = String(viewerRole || '').trim().toLowerCase();
   const isExpertViewer = Boolean(normalizedViewerRole) && !['nutzer', 'user', 'kunde'].includes(normalizedViewerRole);
   const isOwnProfile = Boolean(profile && viewerUserId > 0 && viewerUserId === profile.userId);
-  const isExpertAboActive = Boolean(
-    isOwnProfile
-    && profile?.role === 'experte'
-    && (
-      String(promotionSettings?.plan_key || '').trim().toLowerCase() === 'experte_abo'
-      || String(promotionSettings?.plan_key || '').trim().toLowerCase() === 'experte_pro'
-      || Boolean(promotionSettings?.lifetime_free_access)
-    )
-  );
-  const isUserAboActive = Boolean(
-    isOwnProfile
-    && profile?.role === 'nutzer'
-    && (
-      String(promotionSettings?.plan_key || '').trim().toLowerCase() === 'nutzer_plus'
-      || Boolean(promotionSettings?.lifetime_free_access)
-    )
-  );
-  const isExpertProActive = Boolean(
-    isOwnProfile
-    && profile?.role === 'experte'
-    && (promotionSettings?.plan_key === 'experte_pro' || Boolean(promotionSettings?.lifetime_free_access))
-  );
 
   const loadMeta = async (profileUserId: number, viewerId: number, isMounted = true) => {
     const metaRes = await getPublicProfileMeta({ profileUserId, viewerUserId: viewerId });
@@ -745,7 +695,6 @@ export default function PublicProfilePage() {
   const isPublicProfile = profile ? profile.profilData?.isPublicProfile !== false : true;
   const hasTeam = teamCards.length > 0;
   const hasSchulpferde = horseCards.length > 0;
-  const werbungText = String(profile?.profilData?.startseitenwerbungText || profile?.profilData?.werbungText || '').trim();
   const generalInfoText = String(profile?.profilData?.freitextBeschreibung || '').trim();
   const websiteRaw = String(profile?.profilData?.website || '').trim();
   const websiteHref = websiteRaw && /^https?:\/\//i.test(websiteRaw) ? websiteRaw : (websiteRaw ? `https://${websiteRaw}` : '');
@@ -821,14 +770,6 @@ export default function PublicProfilePage() {
     || newOfferForm.mediaItems.length > 0
   );
   const hasSearchDraft = Boolean(newSearchForm.titel.trim() || newSearchForm.kategorie.trim() || newSearchForm.beschreibung.trim());
-  const offerBoostOption = useMemo(() => {
-    if (!promotionSettings || !Array.isArray(promotionSettings.options)) return null;
-    return promotionSettings.options.find((option) => option.scope === 'angebote') || null;
-  }, [promotionSettings]);
-  const searchBoostOption = useMemo(() => {
-    if (!promotionSettings || !Array.isArray(promotionSettings.options)) return null;
-    return promotionSettings.options.find((option) => option.scope === 'suchen') || null;
-  }, [promotionSettings]);
 
   const formatEuro = (cents: number) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format((cents || 0) / 100);
 
@@ -912,23 +853,6 @@ getWishlistedOfferIds(String(viewerUserId), String(profile.userId)).then((res) =
     };
   }, [isOwnProfile, profile, viewerUserId]);
 
-  useEffect(() => {
-    if (!profile || !isOwnProfile || profile.role !== 'experte') {
-      setPromotionSettings(null);
-      return;
-    }
-
-    let cancelled = false;
-    getUserPromotionSettings(profile.userId).then((res) => {
-      if (cancelled || !res.success || !res.data) return;
-      setPromotionSettings(res.data as ProfilePromotionSettings);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isOwnProfile, profile]);
-
 useEffect(() => {
   if (typeof window !== "undefined") {
     const rawId = sessionStorage.getItem('userId');
@@ -958,10 +882,6 @@ useEffect(() => {
       return;
     }
 
-    if (rawHash === 'werbung' && profile?.role === 'experte') {
-      setActiveTab('werbung');
-      return;
-    }
 
     if (rawHash === 'team' && profile?.role === 'experte' && (editMode || hasTeam)) {
       setActiveTab('team');
@@ -1025,7 +945,7 @@ useEffect(() => {
 
   useEffect(() => {
     if (!profile) return;
-    if (!editMode && profile.role !== 'experte' && (activeTab === 'werbung' || activeTab === 'team' || activeTab === 'schulpferde')) {
+    if (!editMode && profile.role !== 'experte' && (activeTab === 'team' || activeTab === 'schulpferde')) {
       setActiveTab('anzeigen');
       return;
     }
@@ -1041,7 +961,6 @@ useEffect(() => {
   useEffect(() => {
     if (!profile) return;
     const description = String(profile.profilData?.freitextBeschreibung || profile.profilData?.profilBeschreibung || '').trim();
-    const werbung = String(profile.profilData?.startseitenwerbungText || profile.profilData?.werbungText || '').trim();
     const profilbildUrl = String(profile.profilData?.profilbild_url || '').trim();
     const website = String(profile.profilData?.website || '').trim();
     setEditForm({
@@ -1050,7 +969,6 @@ useEffect(() => {
       plz: profile.plz || '',
       mainText: profile.role === 'experte' ? (profile.angebotText || '') : (profile.sucheText || ''),
       description,
-      werbungText: werbung,
       profilbildUrl,
       website,
       profilbildPositionX: clampPercent(Number(profile.profilData?.profilbild_position_x), 50),
@@ -1231,7 +1149,6 @@ useEffect(() => {
       profilbild_zoom: clampZoom(Number(editForm.profilbildZoom), 1),
       freitextBeschreibung: editForm.description,
       website: editForm.website,
-      startseitenwerbungText: editForm.werbungText
     };
 
     try {
@@ -1328,7 +1245,6 @@ useEffect(() => {
       plz: profile.plz || '',
       mainText: profile.role === 'experte' ? (profile.angebotText || '') : (profile.sucheText || ''),
       description,
-      werbungText: '',
       profilbildUrl,
       website,
       profilbildPositionX: clampPercent(Number(profile.profilData?.profilbild_position_x), 50),
@@ -1897,88 +1813,6 @@ useEffect(() => {
     }
   };
 
-  const handleBoostOwnOffer = async (offerId: string) => {
-    const planKey = String(promotionSettings?.plan_key || '').trim().toLowerCase();
-    if (!profile || !isOwnProfile || profile.role !== 'experte' || (planKey !== 'experte_abo' && planKey !== 'experte_pro' && !promotionSettings?.lifetime_free_access) || boostBusyOfferId) return;
-
-    setBoostBusyOfferId(offerId);
-    setPromotionError('');
-    setPromotionSuccess('');
-
-    const res = await purchaseVisibilityPromotion({ userId: profile.userId, scope: 'angebote' });
-    if (!res.success) {
-      setBoostBusyOfferId(null);
-      setPromotionError(res.error || 'Anzeige konnte nicht hochgeschoben werden.');
-      return;
-    }
-
-    const promotionRes = await getUserPromotionSettings(profile.userId);
-
-    if (promotionRes.success && promotionRes.data) {
-      setPromotionSettings(promotionRes.data as ProfilePromotionSettings);
-    }
-
-    const rawOffers = getOffersRaw();
-    const boostedOffers = rawOffers.map((item: any) => {
-      if (String(item?.id || '') !== offerId) return item;
-      return {
-        ...item,
-        boostedUntil: res.endsAt || null
-      };
-    });
-
-    const saveRes = await saveOffersRaw(boostedOffers);
-    if (!saveRes.success) {
-      setBoostBusyOfferId(null);
-      setPromotionError(saveRes.error || 'Boost-Status konnte nicht gespeichert werden.');
-      return;
-    }
-
-    const priceText = Number(res.chargeCents || 0) <= 0 ? 'kostenlos' : `${formatEuro(Number(res.chargeCents || 0))}`;
-    setPromotionSuccess(`Anzeige wurde hochgeschoben bis ${formatDate(res.endsAt || null)} (${priceText}).`);
-    setBoostBusyOfferId(null);
-  };
-
-  const handleBoostOwnSearch = async (searchId: string) => {
-    if (!profile || !isOwnProfile || profile.role !== 'nutzer' || promotionSettings?.plan_key !== 'nutzer_plus' || boostBusyOfferId) return;
-
-    setBoostBusyOfferId(searchId);
-    setPromotionError('');
-    setPromotionSuccess('');
-
-    const res = await purchaseVisibilityPromotion({ userId: profile.userId, scope: 'suchen' });
-    if (!res.success) {
-      setBoostBusyOfferId(null);
-      setPromotionError(res.error || 'Suche konnte nicht hochgeschoben werden.');
-      return;
-    }
-
-    const promotionRes = await getUserPromotionSettings(profile.userId);
-
-    if (promotionRes.success && promotionRes.data) {
-      setPromotionSettings(promotionRes.data as ProfilePromotionSettings);
-    }
-
-    const rawSearches = getSearchesRaw();
-    const boostedSearches = rawSearches.map((item: any) => {
-      if (String(item?.id || '') !== searchId) return item;
-      return {
-        ...item,
-        boostedUntil: res.endsAt || null
-      };
-    });
-
-    const saveRes = await saveSearchesRaw(boostedSearches);
-    if (!saveRes.success) {
-      setBoostBusyOfferId(null);
-      setPromotionError(saveRes.error || 'Boost-Status konnte nicht gespeichert werden.');
-      return;
-    }
-
-    const priceText = Number(res.chargeCents || 0) <= 0 ? 'kostenlos' : `${formatEuro(Number(res.chargeCents || 0))}`;
-    setPromotionSuccess(`Suche wurde hochgeschoben bis ${formatDate(res.endsAt || null)} (${priceText}).`);
-    setBoostBusyOfferId(null);
-  };
 
   const handleCreateTeamInline = async () => {
     if (!profile || !isOwnProfile || profile.role !== 'experte') return;
@@ -2297,14 +2131,8 @@ useEffect(() => {
       <aside className={`fixed left-0 top-0 h-full w-72 bg-white z-[70] shadow-2xl transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} p-6 flex flex-col`}>
         <div className="flex justify-between items-center mb-8 text-emerald-600 font-black italic tracking-tighter">MENÜ <button onClick={() => setSidebarOpen(false)} className="text-slate-300">×</button></div>
         <nav className="space-y-5 flex-grow">
-          {profile.role === 'experte' && (
-            <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = '/dashboard/experte'; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Dashboard</button>
-          )}
           <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = '/'; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Startseite</button>
           <button type="button" onClick={() => { setSidebarOpen(false); openProfile(); }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Mein Profil</button>
-          {profile.role === 'experte' && (
-            <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = '/dashboard/experte/schueler'; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Schüler und Kunden</button>
-          )}
           <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = '/netzwerk'; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Netzwerk</button>
           <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = '/nachrichten'; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Nachrichten</button>
           <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = '/merkliste'; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Merkliste</button>
@@ -2868,11 +2696,6 @@ useEffect(() => {
                 Suche
               </button>
             )}
-            {profile.role === 'experte' && (
-              <button type="button" onClick={() => setActiveTab('werbung')} className={`px-3 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition ${activeTab === 'werbung' ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}>
-                Werbung
-              </button>
-            )}
             {profile.role === 'experte' && (hasTeam || (isOwnProfile && editMode)) && (
               <button type="button" onClick={() => setActiveTab('team')} className={`px-3 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition ${activeTab === 'team' ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}>
                 Team
@@ -3035,24 +2858,6 @@ useEffect(() => {
                         <div className="flex items-center gap-4 pt-1 text-[10px] font-black uppercase tracking-widest text-slate-500">
                           <span className="inline-flex items-center gap-1"><Eye size={13} /> {gesuch.viewsCount}</span>
                         </div>
-                        {isOwnProfile && isUserAboActive && gesuch.visibility === 'public' && (
-                          <div className="pt-1 flex items-center justify-between gap-2 flex-wrap">
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                handleBoostOwnSearch(gesuch.id);
-                              }}
-                              disabled={boostBusyOfferId !== null || !searchBoostOption?.allowed}
-                              className="px-3 py-2 rounded-xl text-[10px] font-black uppercase bg-slate-900 text-white disabled:opacity-60"
-                            >
-                              {boostBusyOfferId === gesuch.id ? 'Wird hochgeschoben...' : 'Diese Suche hochschieben'}
-                            </button>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                              {gesuch.boostedUntil ? `Boost aktiv bis ${formatDate(gesuch.boostedUntil)}` : 'Kein aktiver Boost'}
-                            </p>
-                          </div>
-                        )}
                         {isOwnProfile && editMode && (
                           <div className="flex gap-2 pt-1">
                             <button type="button" onClick={(event) => { event.stopPropagation(); setEditingSearchId(gesuch.id); setEditingSearchForm({ titel: gesuch.titel, kategorie: gesuch.kategorie, beschreibung: gesuch.beschreibung }); }} className="px-3 py-2 rounded-xl text-[10px] font-black uppercase bg-white text-slate-900">Bearbeiten</button>
@@ -3062,40 +2867,6 @@ useEffect(() => {
                       </article>
                     ))}
                   </div>
-                )}
-                {isOwnProfile && (
-                  <>
-                    {isUserAboActive ? (
-                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 space-y-2">
-                        <p className="text-[11px] font-bold text-slate-700">
-                          Mit Nutzer-Abo
-                        </p>
-                        <p className="text-[11px] text-slate-700">
-                          Laufzeit: 7 Tage · 1x kostenlos hochschieben, danach {formatEuro(50)} pro Suche.
-                        </p>
-                        {searchBoostOption && !searchBoostOption.allowed && searchBoostOption.reason && (
-                          <p className="text-[11px] font-bold text-amber-700">{searchBoostOption.reason}</p>
-                        )}
-                        {promotionError && <p className="text-[11px] font-bold text-red-600">{promotionError}</p>}
-                        {promotionSuccess && <p className="text-[11px] font-bold text-emerald-700">{promotionSuccess}</p>}
-                      </div>
-                    ) : (
-                      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-3">
-                        <p className="text-[11px] font-bold text-slate-700">
-                          Suche hochschieben erfordert Nutzer-Abo
-                        </p>
-                        <p className="text-[11px] text-slate-700">
-                          Mit Nutzer-Abo erhalten Sie: Laufzeit 7 Tage · 1x kostenlos hochschieben, danach {formatEuro(50)} pro Suche.
-                        </p>
-                        <Link 
-                          href="/einstellungen" 
-                          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-700 text-white text-[10px] font-black uppercase hover:bg-amber-800 transition"
-                        >
-                          Abo verwalten
-                        </Link>
-                      </div>
-                    )}
-                  </>
                 )}
               </section>
             )}
@@ -3231,24 +3002,6 @@ useEffect(() => {
                           <span className="inline-flex items-center gap-1"><Eye size={13} /> {angebot.viewsCount}</span>
                           <span className="inline-flex items-center gap-1"><Heart size={13} /> {angebot.wishlistCount}</span>
                         </div>
-                        {isOwnProfile && isExpertAboActive && angebot.visibility === 'public' && (
-                          <div className="pt-1 flex items-center justify-between gap-2 flex-wrap">
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                handleBoostOwnOffer(angebot.id);
-                              }}
-                              disabled={boostBusyOfferId !== null || !offerBoostOption?.allowed}
-                              className="px-3 py-2 rounded-xl text-[10px] font-black uppercase bg-slate-900 text-white disabled:opacity-60"
-                            >
-                              {boostBusyOfferId === angebot.id ? 'Wird hochgeschoben...' : 'Diese Anzeige hochschieben'}
-                            </button>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                              {angebot.boostedUntil ? `Boost aktiv bis ${formatDate(angebot.boostedUntil)}` : 'Kein aktiver Boost'}
-                            </p>
-                          </div>
-                        )}
                         {!isOwnProfile && viewerUserId > 0 && (
                           <div className="pt-1 flex items-center gap-2 flex-wrap">
                             <button
@@ -3293,46 +3046,6 @@ useEffect(() => {
                     ))}
                   </div>
                 )}
-                {isOwnProfile && (
-                  <>
-                    {isExpertAboActive ? (
-                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 space-y-2">
-                        <p className="text-[11px] font-bold text-slate-700">
-                          Mit Experten-Abo
-                        </p>
-                        <p className="text-[11px] text-slate-700">
-                          Laufzeit: 7 Tage · 1x kostenlos hochschieben, danach {formatEuro(50)} pro Anzeige.
-                        </p>
-                        {isExpertProActive && (
-                          <p className="text-[11px] text-slate-700">
-                            Startseitenwerbung bleibt exklusiv für Experten mit Premium-Abo.
-                          </p>
-                        )}
-
-                        {offerBoostOption && !offerBoostOption.allowed && offerBoostOption.reason && (
-                          <p className="text-[11px] font-bold text-amber-700">{offerBoostOption.reason}</p>
-                        )}
-                        {promotionError && <p className="text-[11px] font-bold text-red-600">{promotionError}</p>}
-                        {promotionSuccess && <p className="text-[11px] font-bold text-emerald-700">{promotionSuccess}</p>}
-                      </div>
-                    ) : (
-                      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-3">
-                        <p className="text-[11px] font-bold text-slate-700">
-                          Anzeigen hochschieben erfordert Experten-Abo
-                        </p>
-                        <p className="text-[11px] text-slate-700">
-                          Mit Experten-Abo erhalten Sie: Laufzeit 7 Tage · 1x kostenlos hochschieben, danach {formatEuro(50)} pro Anzeige.
-                        </p>
-                        <Link 
-                          href="/einstellungen" 
-                          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-700 text-white text-[10px] font-black uppercase hover:bg-amber-800 transition"
-                        >
-                          Abo verwalten
-                        </Link>
-                      </div>
-                    )}
-                  </>
-                )}
               </section>
             )}
 
@@ -3349,32 +3062,6 @@ useEffect(() => {
                 )}
               </section>
             )}
-          </section>
-        )}
-
-        {activeTab === 'werbung' && profile.role === 'experte' && (
-          <section className="space-y-6">
-            <section className="bg-white rounded-[2rem] border border-slate-100 p-8 shadow-sm space-y-4">
-              <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Werbung</p>
-                  <h2 className="mt-1 text-xl font-black uppercase text-slate-900">Sichtbarkeit und Werbeoptionen</h2>
-                  <p className="text-[11px] text-slate-600 mt-1">
-                    Hol dir mehr Sichtbarkeit! Hier kannst du deine eigene Werbung für die Startseite erstellen.
-                  </p>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Deine Werbung</p>
-                {werbungText ? (
-                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{werbungText}</p>
-                ) : (
-                  <p className="text-sm text-slate-500">Noch keine Werbung hinterlegt.</p>
-                )}
-              </div>
-
-            </section>
           </section>
         )}
 

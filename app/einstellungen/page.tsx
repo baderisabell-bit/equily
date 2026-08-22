@@ -638,7 +638,6 @@ export default function EinstellungenPage() {
   const currentRole = (typeof window !== "undefined" ? sessionStorage.getItem("userRole") : null) || role;
   const normalizedRole = String(currentRole || role).trim().toLowerCase();
   const isExpertRole = Boolean(normalizedRole) && !["nutzer", "user", "kunde"].includes(normalizedRole);
-  const dashboardHref = currentRole === "experte" ? "/dashboard/experte" : "/dashboard/nutzer";
   const profileHref = userId && userId > 0 ? `/profil/${userId}` : "/login";
 
   const handleLogout = () => {
@@ -681,11 +680,9 @@ export default function EinstellungenPage() {
         <nav className="space-y-5 flex-grow">
           <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = '/'; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Startseite</button>
           <button type="button" onClick={() => { setSidebarOpen(false); openProfile(); }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Mein Profil</button>
-          {!isExpertRole && <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = dashboardHref; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Mein Dashboard</button>}
           <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = '/netzwerk'; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Netzwerk</button>
           <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = '/merkliste'; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Merkliste</button>
           <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = '/nachrichten'; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Nachrichten</button>
-          <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = isExpertRole ? '/dashboard/experte' : '/dashboard/nutzer'; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">{isExpertRole ? 'Experten-Dashboard' : 'Dashboard'}</button>
           <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = '/einstellungen'; }} className="block text-left text-lg font-black italic uppercase text-emerald-600">Einstellungen</button>
           <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = '/kontakt'; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Kontakt & FAQ</button>
         </nav>
@@ -718,9 +715,6 @@ export default function EinstellungenPage() {
             <button type="button" onClick={() => scrollToSection("section-marketing")} className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-black uppercase tracking-widest text-slate-600 hover:border-emerald-300">Marketing & Sichtbarkeit</button>
             {isExpertRole && (
               <button type="button" onClick={() => scrollToSection("section-ads")} className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-black uppercase tracking-widest text-slate-600 hover:border-emerald-300">Werbung</button>
-            )}
-            {isExpertRole && (
-              <Link href="/dashboard/experte/schueler" className="block px-4 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-black uppercase tracking-widest text-slate-600 hover:border-emerald-300">Schüler & Kunden</Link>
             )}
           </div>
 
