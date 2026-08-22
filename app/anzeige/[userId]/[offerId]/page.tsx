@@ -226,36 +226,16 @@ export default function OfferDetailPage() {
       ))}
 
           <div className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Konditionen &amp; Rechnung</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Konditionen</p>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
               <p className="text-sm text-slate-700">
-                Abrechnungsmodell: <span className="font-black text-slate-900">{details.offer.conditions?.billingType === 'abo' ? 'Abo' : 'Einmalzahlung'}</span>
+                Zahlungsmodell: <span className="font-black text-slate-900">Einmalzahlung</span>
               </p>
-              {details.offer.conditions?.billingType === 'abo' && (
-                <>
-                  <p className="text-sm text-slate-700">
-                    Leistungen pro Abo: <span className="font-black text-slate-900">{details.offer.conditions?.sessionsPerAbo || '-'}</span>
-                  </p>
-                  <p className="text-sm text-slate-700">
-                    Rücktritt von einzelner Leistung: <span className="font-black text-slate-900">{details.offer.conditions?.singleSessionCancellationAllowed ? 'Ja' : 'Nein'}</span>
-                  </p>
-                  {details.offer.conditions?.singleSessionCancellationAllowed && (
-                    <p className="text-sm text-slate-700">
-                      Max. Rücktritte im Abo: <span className="font-black text-slate-900">{details.offer.conditions?.maxCancellationsPerAbo}</span>
-                    </p>
-                  )}
-                  {Number(details.offer.conditions?.cancellationWindowHours || 0) > 0 && (
-                    <p className="text-sm text-slate-700">
-                      Rücktrittsfrist: <span className="font-black text-slate-900">{details.offer.conditions?.cancellationWindowHours} Stunden</span>
-                    </p>
-                  )}
-                </>
-              )}
               {details.offer.conditions?.billingNotes && (
                 <p className="text-sm text-slate-700 whitespace-pre-wrap">{details.offer.conditions.billingNotes}</p>
               )}
               <p className="text-xs text-slate-500">
-                Diese Konditionen sind die Grundlage für die Abrechnung/Rechnung dieser Leistung.
+                Diese Konditionen beschreiben die angebotene Leistung.
               </p>
             </div>
           </div>

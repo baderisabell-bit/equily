@@ -328,7 +328,7 @@ export default function RegistrierungNutzer() {
       }
 
       alert("Konto erstellt. Du bist jetzt eingeloggt.");
-      window.location.href = '/abo?onboarding=1&role=nutzer';
+      window.location.href = '/';
     } catch (err) {
       console.error('Registrierungsfehler:', err);
       alert('Ein Fehler bei der Registrierung ist aufgetreten.');

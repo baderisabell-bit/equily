@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ANGEBOT_KATEGORIEN } from '../suche/kategorien-daten';
-import { getStoredProfileData, getUserPromotionSettings, saveExpertProfileData, trackInteractionShare, uploadNetworkMedia } from '../actions';
+import { getStoredProfileData, saveExpertProfileData, trackInteractionShare, uploadNetworkMedia } from '../actions';
 import { ChevronLeft, Eye, Heart, MapPin, Plus, Share2, Trash2 } from 'lucide-react';
 import LoggedInHeader from '../components/logged-in-header';
 import MediaDropzone from '../components/media-dropzone';
@@ -11,7 +11,7 @@ import MediaDropzone from '../components/media-dropzone';
 type PriceRow = {
   id: string;
   betrag: string;
-  typ: 'einzel' | 'abo' | 'custom';
+  typ: 'einzel' | 'custom';
   typBezeichnung: string; // Für "eigene Bezeichnung" oder Info-Text
   anzahlLeistungen: string; // Nur für Abo relevant
 };
@@ -26,7 +26,7 @@ type AdItem = {
   titleImageUrl: string;
   mediaItems: Array<{ url: string; mediaType: 'image' | 'video' }>;
   preise: PriceRow[];
-  billingType: 'einmal' | 'abo';
+  billingType: 'einmal';
   sessionsPerAbo: string;
   singleSessionCancellationAllowed: boolean;
   maxCancellationsPerAbo: string;
@@ -58,7 +58,6 @@ export default function InserierenPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [hasExpertProAccess, setHasExpertProAccess] = useState(false);
   const [profilMeta, setProfilMeta] = useState<{ name: string; ort: string; plz: string; kategorien: string[]; zertifikate: string[]; angebotText: string; profilData: Record<string, any> }>({
     name: '',
     ort: '',
@@ -142,13 +141,13 @@ export default function InserierenPage() {
             preise: Array.isArray(item?.preise)
               ? item.preise.map((preis: any, priceIdx: number) => ({
                   id: String(preis?.id || `price-${idx}-${priceIdx}`),
-                  typ: preis?.typ === 'abo' ? 'abo' : preis?.typ === 'custom' ? 'custom' : 'einzel',
+                  typ: preis?.typ === 'custom' ? 'custom' : 'einzel',
                   betrag: String(preis?.betrag || '').trim(),
                   typBezeichnung: String(preis?.typBezeichnung || preis?.leistung || '').trim(),
                   anzahlLeistungen: String(preis?.anzahlLeistungen || '').trim()
                 }))
               : [],
-            billingType: String(item?.billingType || '').trim().toLowerCase() === 'abo' ? 'abo' : 'einmal',
+            billingType: 'einmal',
             sessionsPerAbo: String(item?.sessionsPerAbo || '').trim(),
             singleSessionCancellationAllowed: Boolean(item?.singleSessionCancellationAllowed),
             maxCancellationsPerAbo: String(item?.maxCancellationsPerAbo || '').trim(),
@@ -174,12 +173,6 @@ export default function InserierenPage() {
       });
       setFormData((prev) => ({ ...prev, kategorie: (Array.isArray(res.data.kategorien) && res.data.kategorien[0]) || verfuegbareKategorien[0] || '' }));
 
-      const promotionRes = await getUserPromotionSettings(parsedUserId);
-      const proAccess = Boolean(promotionRes.success && promotionRes.data?.plan_key === 'experte_pro');
-      setHasExpertProAccess(proAccess);
-      if (!proAccess) {
-        setError('Eigene Werbung ist nur mit aktivem Experten-Pro-Abo verfügbar.');
-      }
       setLoading(false);
     };
 
@@ -188,10 +181,6 @@ export default function InserierenPage() {
 
   const uploadMedia = async (file: File, target: 'title' | 'gallery') => {
     if (!userId) return;
-    if (!hasExpertProAccess) {
-      setError('Eigene Werbung ist nur mit aktivem Experten-Pro-Abo verfügbar.');
-      return;
-    }
     setSaving(true);
     setError('');
     const formDataUpload = new FormData();
@@ -247,10 +236,6 @@ export default function InserierenPage() {
   };
 
   const createAd = async (visibility: 'public' | 'draft') => {
-    if (!hasExpertProAccess) {
-      setError('Eigene Werbung ist nur mit aktivem Experten-Pro-Abo verfügbar.');
-      return;
-    }
     if (!formData.titel.trim()) {
       setError('Bitte Titel eingeben.');
       return;
@@ -267,20 +252,11 @@ export default function InserierenPage() {
       setError('Bitte für Mobil einen gültigen Umkreis auswählen.');
       return;
     }
-    const validPreisRows = preisRows.filter((row) => row.betrag.trim() && (row.typ === 'abo' ? row.anzahlLeistungen.trim() : row.typBezeichnung.trim()));
+    const validPreisRows = preisRows.filter((row) => row.betrag.trim() && row.typBezeichnung.trim());
     if (validPreisRows.length === 0) {
       setError('Bitte mindestens eine vollständige Preiszeile anlegen.');
       return;
     }
-    if (formData.billingType === 'abo' && !String(formData.sessionsPerAbo || '').trim()) {
-      setError('Bitte Anzahl der Leistungen im Abo angeben.');
-      return;
-    }
-    if (formData.billingType === 'abo' && formData.singleSessionCancellationAllowed && !String(formData.maxCancellationsPerAbo || '').trim()) {
-      setError('Bitte max. Rücktritte im Abo angeben.');
-      return;
-    }
-
     const now = new Date().toISOString();
     const nextAd: AdItem = {
       id: `ad-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -292,12 +268,12 @@ export default function InserierenPage() {
       titleImageUrl: formData.titleImageUrl.trim(),
       mediaItems,
       preise: validPreisRows,
-      billingType: formData.billingType,
-      sessionsPerAbo: formData.billingType === 'abo' ? String(formData.sessionsPerAbo || '').trim() : '',
-      singleSessionCancellationAllowed: formData.billingType === 'abo' ? Boolean(formData.singleSessionCancellationAllowed) : false,
-      maxCancellationsPerAbo: formData.billingType === 'abo' && formData.singleSessionCancellationAllowed ? String(formData.maxCancellationsPerAbo || '').trim() : '',
-      cancellationWindowHours: formData.billingType === 'abo' ? String(formData.cancellationWindowHours || '').trim() : '',
-      billingNotes: String(formData.billingNotes || '').trim(),
+      billingType: 'einmal',
+      sessionsPerAbo: '',
+      singleSessionCancellationAllowed: false,
+      maxCancellationsPerAbo: '',
+      cancellationWindowHours: '',
+      billingNotes: '',
       visibility,
       viewsCount: 0,
       wishlistCount: 0,
@@ -366,20 +342,11 @@ export default function InserierenPage() {
       return;
     }
 
-    const validPreisRows = preisRows.filter((row) => row.betrag.trim() && (row.typ === 'abo' ? row.anzahlLeistungen.trim() : row.typBezeichnung.trim()));
+    const validPreisRows = preisRows.filter((row) => row.betrag.trim() && row.typBezeichnung.trim());
     if (validPreisRows.length === 0) {
       setError('Bitte mindestens eine vollständige Preiszeile anlegen.');
       return;
     }
-    if (formData.billingType === 'abo' && !String(formData.sessionsPerAbo || '').trim()) {
-      setError('Bitte Anzahl der Leistungen im Abo angeben.');
-      return;
-    }
-    if (formData.billingType === 'abo' && formData.singleSessionCancellationAllowed && !String(formData.maxCancellationsPerAbo || '').trim()) {
-      setError('Bitte max. Rücktritte im Abo angeben.');
-      return;
-    }
-
     const nextAds = ads.map((ad) => {
       if (ad.id !== editingAdId) return ad;
       return {
@@ -392,12 +359,12 @@ export default function InserierenPage() {
         titleImageUrl: formData.titleImageUrl.trim(),
         mediaItems,
         preise: validPreisRows,
-        billingType: formData.billingType,
-        sessionsPerAbo: formData.billingType === 'abo' ? String(formData.sessionsPerAbo || '').trim() : '',
-        singleSessionCancellationAllowed: formData.billingType === 'abo' ? Boolean(formData.singleSessionCancellationAllowed) : false,
-        maxCancellationsPerAbo: formData.billingType === 'abo' && formData.singleSessionCancellationAllowed ? String(formData.maxCancellationsPerAbo || '').trim() : '',
-        cancellationWindowHours: formData.billingType === 'abo' ? String(formData.cancellationWindowHours || '').trim() : '',
-        billingNotes: String(formData.billingNotes || '').trim(),
+        billingType: 'einmal' as const,
+        sessionsPerAbo: '',
+        singleSessionCancellationAllowed: false,
+        maxCancellationsPerAbo: '',
+        cancellationWindowHours: '',
+        billingNotes: '',
         updatedAt: new Date().toISOString()
       };
     });
@@ -529,19 +496,7 @@ export default function InserierenPage() {
           </div>
         )}
 
-        {!hasExpertProAccess && (
-          <section className="bg-white rounded-[2rem] border border-amber-100 p-8 shadow-sm space-y-4">
-            <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">Experten Pro erforderlich</p>
-            <h2 className="text-2xl font-black italic uppercase text-slate-900">Eigene Werbung hochladen</h2>
-            <p className="text-sm text-slate-600">Diese Funktion ist nur mit aktivem Experten-Pro-Abo sichtbar. Mit aktivem Pro kannst du Titelbild, weitere Medien und Anzeigeninhalte anlegen.</p>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/abo" className="px-4 py-3 rounded-xl text-[10px] font-black uppercase bg-slate-900 text-white">Zum Abo</Link>
-              <button type="button" onClick={openProfile} className="px-4 py-3 rounded-xl text-[10px] font-black uppercase border border-slate-200 text-slate-700">Zurück zum Profil</button>
-            </div>
-          </section>
-        )}
-
-        <section className={`${hasExpertProAccess ? 'bg-white rounded-[2rem] border border-slate-100 p-8 shadow-sm space-y-6' : 'hidden'}`}>
+        <section className="bg-white rounded-[2rem] border border-slate-100 p-8 shadow-sm space-y-6">
           <div>
             <h1 className="text-2xl font-black italic uppercase text-slate-900">{editingAdId ? 'Anzeige bearbeiten' : 'Neue Anzeige'}</h1>
             <p className="text-xs text-slate-500 mt-1">Mindestens ein Titelbild ist Pflicht. Weitere Bilder/Videos sind optional.</p>
@@ -674,24 +629,13 @@ export default function InserierenPage() {
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm"
                     >
                       <option value="einzel">Einzelleistung</option>
-                      <option value="abo">Monatsabo</option>
                       <option value="custom">Eigene Bezeichnung</option>
                     </select>
                   </div>
 
                   <div className="md:col-span-5">
-                    {row.typ === 'abo' ? (
-                      <>
-                        <label className="text-[9px] uppercase font-bold text-slate-400 ml-1">Anzahl Leistungen</label>
-                        <input
-                          value={row.anzahlLeistungen}
-                          onChange={(e) => setPreisRows((prev) => prev.map((priceRow) => (priceRow.id === row.id ? { ...priceRow, anzahlLeistungen: e.target.value } : priceRow)))}
-                          placeholder="z. B. 4"
-                          className="w-full rounded-xl border border-slate-200 bg-emerald-50 p-3 text-sm"
-                        />
-                      </>
-                    ) : (
-                      <>
+                    {(
+                    <>
                         <label className="text-[9px] uppercase font-bold text-slate-400 ml-1">Bezeichnung</label>
                         <input
                           value={row.typBezeichnung}
@@ -740,7 +684,7 @@ export default function InserierenPage() {
 
         </section>
 
-        <section className={`${hasExpertProAccess ? 'bg-white rounded-[2rem] border border-slate-100 p-8 shadow-sm space-y-4' : 'hidden'}`}>
+        <section className="bg-white rounded-[2rem] border border-slate-100 p-8 shadow-sm space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <h2 className="text-lg font-black uppercase italic text-slate-900">Bereits online geschaltet / Entwürfe</h2>
             <div className="flex gap-2">
@@ -769,13 +713,8 @@ export default function InserierenPage() {
                   <p className="text-sm text-slate-600 line-clamp-3">{ad.beschreibung || 'Keine Beschreibung.'}</p>
                   <div className="flex flex-wrap gap-2">
                     <span className="px-2 py-1 rounded-lg text-[9px] font-black uppercase bg-slate-200 text-slate-700">
-                      {ad.billingType === 'abo' ? 'Abo' : 'Einmalzahlung'}
+                      Einmalzahlung
                     </span>
-                    {ad.billingType === 'abo' && ad.singleSessionCancellationAllowed && (
-                      <span className="px-2 py-1 rounded-lg text-[9px] font-black uppercase bg-emerald-100 text-emerald-700">
-                        Rücktritt möglich
-                      </span>
-                    )}
                   </div>
                   <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-500">
                     <span className="inline-flex items-center gap-1"><Eye size={13} /> {ad.viewsCount}</span>

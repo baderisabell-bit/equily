@@ -28,7 +28,7 @@ body {
     radial-gradient(900px 520px at 90% -10%, color-mix(in srgb, var(--image-sand) 12%, transparent), transparent 66%),
     var(--background);
   color: var(--foreground);
-  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-geist-sans), sans-serif;
   font-weight: 400;
   line-height: 1.65;
   letter-spacing: 0.01em;
@@ -197,4 +197,70 @@ h6 {
 .shadow-xl,
 .shadow-2xl {
   box-shadow: 0 14px 30px rgba(52, 51, 47, 0.1) !important;
+}
+
+/* Shared visual primitives for the home page. */
+.home-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+  font-family: var(--font-geist-sans), sans-serif;
+}
+
+.home-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 1.5rem;
+}
+
+.home-section {
+  border: 1px solid var(--border);
+  border-radius: 2rem;
+  background: var(--surface);
+  padding: 1.5rem;
+}
+
+.home-section-title {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 1.5rem;
+  font-weight: 620;
+  font-style: italic;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.home-item {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--background);
+  padding: 1rem;
+}
+
+.home-label {
+  color: var(--muted);
+  font-size: 0.625rem;
+  font-weight: 620;
+  letter-spacing: 0.09em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.home-action {
+  border-radius: 0.75rem;
+  background: var(--accent);
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 620;
+  letter-spacing: 0.09em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.home-action:hover {
+  background: var(--accent-hover);
 }

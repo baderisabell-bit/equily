@@ -156,7 +156,6 @@ export default function BenachrichtigungenPage() {
         <nav className="space-y-5 flex-grow">
           <button type="button" onClick={() => { setSidebarOpen(false); router.push('/'); }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Startseite</button>
           <button type="button" onClick={() => { setSidebarOpen(false); openProfile(); }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Mein Profil</button>
-          <button type="button" onClick={() => { setSidebarOpen(false); router.push('/dashboard/rechnungen'); }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Rechnungen</button>
           <button type="button" onClick={() => { setSidebarOpen(false); router.push('/netzwerk'); }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Netzwerk</button>
           <button type="button" onClick={() => { setSidebarOpen(false); router.push('/merkliste'); }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Merkliste</button>
           <button type="button" onClick={() => { setSidebarOpen(false); router.push('/nachrichten'); }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Nachrichten</button>

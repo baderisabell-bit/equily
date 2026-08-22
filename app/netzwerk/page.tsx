@@ -614,7 +614,6 @@ export default function NetzwerkPage() {
         <nav className="space-y-5 flex-grow">
           <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = '/'; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Startseite</button>
           <button type="button" onClick={() => { setSidebarOpen(false); openProfile(); }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Mein Profil</button>
-          <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = '/dashboard/rechnungen'; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Rechnungen</button>
           <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = '/netzwerk'; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Netzwerk</button>
           <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = '/netzwerk/gespeichert'; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Gespeichert</button>
           <button type="button" onClick={() => { setSidebarOpen(false); window.location.href = '/merkliste'; }} className="block text-left text-lg font-black italic uppercase text-slate-800 hover:text-emerald-600">Merkliste</button>

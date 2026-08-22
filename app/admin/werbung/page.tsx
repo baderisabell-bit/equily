@@ -160,7 +160,6 @@ export default function AdminWerbungPage() {
             <Link href="/admin/kontakt" className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-200 text-slate-600">Kontakt</Link>
             <Link href="/admin/moderation" className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-200 text-slate-600">Moderation</Link>
             <Link href="/admin/werbung" className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-600 text-white">Werbung</Link>
-            <Link href="/admin/abo" className="px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-200 text-slate-600">Newsletter</Link>
           </div>
           <input
             type="password"

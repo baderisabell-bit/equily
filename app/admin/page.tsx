@@ -47,18 +47,6 @@ const ADMIN_SECTIONS: AdminSection[] = [
     icon: <Megaphone size={18} />,
   },
   {
-    href: "/admin/abo",
-    title: "Newsletter",
-    description: "Abo-Gruppen, Empfänger und Preislisten verwalten.",
-    icon: <Users size={18} />,
-  },
-  {
-    href: "/admin/abo-management",
-    title: "Abo-Management",
-    description: "Gründungsmitglieder, Lebenszugriffe und Analytik.",
-    icon: <Sparkles size={18} />,
-  },
-  {
     href: "/admin/early-access",
     title: "Early Access",
     description: "Frühzugriff-Statistiken und Aktivierungen ansehen.",

@@ -942,55 +942,6 @@ export default function SchuelerPage() {
         </div>
       )}
 
-      {!hasPremiumAccess && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/55 backdrop-blur-sm p-6">
-          <section className="w-full max-w-2xl bg-white border border-emerald-200 rounded-[2rem] p-8 shadow-2xl">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Premium Funktion</p>
-            <h1 className="mt-2 text-3xl font-black italic uppercase tracking-tight text-slate-900">Schüler &amp; Kunden ist nur mit Experten-Pro verfügbar</h1>
-            <p className="mt-3 text-sm text-slate-600">
-              Dein aktueller Plan: <span className="font-black text-slate-900">{subscriptionPlanLabel}</span>.
-              Für Kundenverwaltung, Rechnungsübersicht und Kalenderbuchungen benötigst du den Plan <span className="font-black text-emerald-700">Experte Pro</span>.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowPremiumDetails((prev) => !prev)}
-              className="mt-4 px-4 py-2 bg-white border border-emerald-200 text-emerald-700 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-50 transition-colors"
-            >
-              {showPremiumDetails ? 'Weniger anzeigen' : 'Mehr erfahren'}
-            </button>
-
-            {showPremiumDetails && (
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Im Experten-Pro enthalten</p>
-                <ul className="mt-3 space-y-2 text-xs text-slate-700 font-semibold">
-                  <li>• Schüler- und Kundenverwaltung mit Detailprofilen</li>
-                  <li>• Rechnungsübersicht inkl. Druckansicht pro Kunde und Monat</li>
-                  <li>• Kalender-Buchungsfunktion und Slot-Freigabe</li>
-                  <li>• Erweiterte Sichtbarkeit und Abo-Vorteile im Marktplatz</li>
-                </ul>
-              </div>
-            )}
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => router.push('/abo?role=experte')}
-                className="px-6 py-3 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-colors"
-              >
-                Jetzt auf Experte Pro upgraden
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push('/dashboard/experte')}
-                className="px-6 py-3 bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-200 transition-colors"
-              >
-                Zurück zum Experten-Dashboard
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
-
       <main className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 xl:grid-cols-[260px_1fr] gap-8">
 
         {/* ── Left nav ── */}
@@ -1328,7 +1279,6 @@ export default function SchuelerPage() {
                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1.5">Plantyp</label>
                       <select value={servicePlan.plan_type || "einzelstunde"} onChange={(e) => setServicePlan(p => ({ ...p, plan_type: e.target.value as "abo" | "einzelstunde" }))} className={inputCls}>
                         <option value="einzelstunde">Einzelstunde</option>
-                        <option value="abo">Monatsabo</option>
                       </select>
                     </div>
                     <div>
@@ -1797,7 +1747,7 @@ export default function SchuelerPage() {
                 <p className="mt-2 text-sm text-slate-500">Diese Angaben erscheinen auf deinen Rechnungen als Absender.</p>
                 <button
                   type="button"
-                  onClick={() => { window.location.href = "/dashboard/rechnungen"; }}
+                  onClick={() => { setMainTab("uebersicht"); }}
                   className="mt-4 px-4 py-3 rounded-xl border border-emerald-200 bg-emerald-50 text-[10px] font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-100"
                 >
                   Reiter Rechnungen öffnen

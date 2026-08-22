@@ -85,12 +85,6 @@ export default function FoundingMembersInfoBanner() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-            <Link
-              href="/abo"
-              className="px-5 py-3 rounded-xl bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-800 text-center"
-            >
-              Zum Abo
-            </Link>
             <button
               type="button"
               onClick={handleDismiss}

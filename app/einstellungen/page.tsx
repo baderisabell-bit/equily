@@ -710,7 +710,6 @@ export default function EinstellungenPage() {
             <button type="button" onClick={() => scrollToSection("section-password-access")} className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-black uppercase tracking-widest text-slate-600 hover:border-emerald-300">Passwort & Zugang</button>
             <button type="button" onClick={() => scrollToSection("section-delete-profile")} className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-black uppercase tracking-widest text-slate-600 hover:border-emerald-300">Profil dauerhaft löschen</button>
             <button type="button" onClick={() => scrollToSection("section-cookies")} className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-black uppercase tracking-widest text-slate-600 hover:border-emerald-300">Cookies</button>
-            <button type="button" onClick={() => scrollToSection("section-subscription")} className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-black uppercase tracking-widest text-slate-600 hover:border-emerald-300">Abo & Zahlung</button>
             <button type="button" onClick={() => scrollToSection("section-gallery")} className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-black uppercase tracking-widest text-slate-600 hover:border-emerald-300">Profil Galerie</button>
           </div>
 
@@ -723,7 +722,6 @@ export default function EinstellungenPage() {
             {isExpertRole && (
               <Link href="/dashboard/experte/schueler" className="block px-4 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-black uppercase tracking-widest text-slate-600 hover:border-emerald-300">Schüler & Kunden</Link>
             )}
-            <button type="button" onClick={() => scrollToSection("section-bookings-invoices")} className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 bg-white text-[10px] font-black uppercase tracking-widest text-slate-600 hover:border-emerald-300">Buchungen & Rechnungen</button>
           </div>
 
           <div className="px-4 py-3 rounded-xl border border-emerald-200 bg-emerald-50 text-[10px] font-black uppercase tracking-widest text-emerald-700 text-center">
@@ -732,26 +730,6 @@ export default function EinstellungenPage() {
         </aside>
 
         <div className="space-y-8">
-          <section id="section-bookings-invoices" className="bg-gradient-to-br from-emerald-50 to-white border border-emerald-200 rounded-[2rem] p-8 shadow-sm space-y-4">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Abrechnung</p>
-              <h1 className="mt-2 text-3xl font-black italic uppercase tracking-tight text-slate-900">Rechnungen & Buchungen</h1>
-              <p className="mt-2 text-sm font-medium text-slate-600 max-w-2xl">
-                Öffne deine Rechnungen gesammelt im Abrechnungsbereich. Dort findest du auch die zugehörigen Buchungen und Kundenübersichten.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Link href="/dashboard/rechnungen" className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest shadow-sm hover:bg-emerald-500">
-                Rechnungen öffnen
-                <ChevronRight size={14} />
-              </Link>
-              <Link href="/abo" className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-slate-200 bg-white text-slate-700 text-[10px] font-black uppercase tracking-widest shadow-sm hover:border-emerald-300">
-                Abo verwalten
-              </Link>
-            </div>
-          </section>
-
           <div className="grid grid-cols-1 2xl:grid-cols-[1fr_1fr] gap-8">
         <section id="section-private-data" className="bg-white border border-slate-200 rounded-[2rem] p-8 shadow-sm space-y-6">
           <div>
@@ -894,7 +872,7 @@ export default function EinstellungenPage() {
               </div>
             </div>
 
-            <div id="section-subscription" className="pt-6 border-t border-slate-100">
+            {subscription !== null && false && <div id="section-subscription" className="pt-6 border-t border-slate-100">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Abo & Zahlung</p>
                 <h2 className="mt-2 text-xl font-black italic uppercase tracking-tight text-slate-900">Tarifverwaltung & Abrechnung</h2>
@@ -913,26 +891,26 @@ export default function EinstellungenPage() {
                       Aktives Abo
                     </p>
                     <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-slate-600">
-                      Plan: {subscription.plan_label || subscription.plan_key} · Status: {subscription.status}
+                      Plan: {subscription!.plan_label || subscription!.plan_key} · Status: {subscription!.status}
                     </p>
                   </div>
-                  <p className="text-xl font-black italic uppercase text-emerald-900">{formatEuro(subscription.monthly_price_cents)} / Monat</p>
+                  <p className="text-xl font-black italic uppercase text-emerald-900">{formatEuro(subscription!.monthly_price_cents)} / Monat</p>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    Zahlungsart: {subscription.payment_method === 'sepa' ? 'SEPA Lastschrift (günstiger)' : 'PayPal (mit Zahlungsgebühren)'}
+                    Zahlungsart: {subscription!.payment_method === 'sepa' ? 'SEPA Lastschrift (günstiger)' : 'PayPal (mit Zahlungsgebühren)'}
                   </p>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                    Nächste Abbuchung: {formatDate(subscription.next_charge_at || null)}
+                    Nächste Abbuchung: {formatDate(subscription!.next_charge_at || null)}
                   </p>
-                  {subscription.cancel_requested_at && (
+                  {subscription!.cancel_requested_at && (
                     <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">
-                      Kündigung vorgemerkt am {formatDate(subscription.cancel_requested_at || null)} · Wirksam zum {formatDate(subscription.cancel_effective_at || null)}
+                      Kündigung vorgemerkt am {formatDate(subscription!.cancel_requested_at || null)} · Wirksam zum {formatDate(subscription!.cancel_effective_at || null)}
                     </p>
                   )}
                   <div className="flex flex-wrap gap-3">
                     <button
                       type="button"
                       onClick={() => switchSubscriptionPayment('sepa')}
-                      disabled={subscriptionSaving || subscription.payment_method === 'sepa'}
+                      disabled={subscriptionSaving || subscription!.payment_method === 'sepa'}
                       className="px-4 py-2 rounded-xl border border-emerald-300 text-[10px] font-black uppercase tracking-widest text-emerald-700 disabled:opacity-50 hover:bg-emerald-100"
                     >
                       Auf SEPA wechseln
@@ -940,19 +918,16 @@ export default function EinstellungenPage() {
                     <button
                       type="button"
                       onClick={() => switchSubscriptionPayment('paypal')}
-                      disabled={subscriptionSaving || subscription.payment_method === 'paypal'}
+                      disabled={subscriptionSaving || subscription!.payment_method === 'paypal'}
                       className="px-4 py-2 rounded-xl border border-emerald-300 text-[10px] font-black uppercase tracking-widest text-emerald-700 disabled:opacity-50 hover:bg-emerald-100"
                     >
                       Auf PayPal wechseln
                     </button>
-                    <Link href="/abo" className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700">
-                      Abo vollständig verwalten
-                    </Link>
                     <Link href="/widerrufsformular" className="px-4 py-2 rounded-xl border border-amber-300 bg-white text-[10px] font-black uppercase tracking-widest text-amber-700 hover:bg-amber-50">
                       Abo kündigen
                     </Link>
                   </div>
-                  {subscription.monthly_price_cents > 0 && (
+                  {subscription!.monthly_price_cents > 0 && (
                     <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
                       <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">Kündigung</p>
                       <input
@@ -965,10 +940,10 @@ export default function EinstellungenPage() {
                       <button
                         type="button"
                         onClick={requestSubscriptionCancellation}
-                        disabled={subscriptionCancelBusy || subscription.status === 'cancel_pending'}
+                        disabled={subscriptionCancelBusy || subscription!.status === 'cancel_pending'}
                         className="px-4 py-2 rounded-xl border border-amber-400 bg-white text-[10px] font-black uppercase tracking-widest text-amber-700 disabled:opacity-60"
                       >
-                        {subscriptionCancelBusy ? 'Kündige...' : subscription.status === 'cancel_pending' ? 'Kündigung vorgemerkt' : 'Abo kündigen'}
+                        {subscriptionCancelBusy ? 'Kündige...' : subscription!.status === 'cancel_pending' ? 'Kündigung vorgemerkt' : 'Abo kündigen'}
                       </button>
                       <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
                         Frist: mindestens 3 Tage vor dem nächsten Abbuchungstermin.
@@ -982,12 +957,9 @@ export default function EinstellungenPage() {
                   <p className="text-sm text-slate-700">
                     Mit einem Abo kannst du deine Suchen oder Angebote hochschieben und erhältst zusätzliche Vorteile.
                   </p>
-                  <Link href="/abo" className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-amber-700 text-white text-[10px] font-black uppercase tracking-widest hover:bg-amber-800">
-                    Zum Abo-Shop
-                  </Link>
                 </div>
               )}
-            </div>
+            </div>}
 
             <div id="section-cookies" className="pt-6 border-t border-slate-100">
               <div>

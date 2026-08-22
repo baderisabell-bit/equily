@@ -394,7 +394,7 @@ export default function RegistrierungExperte() {
       sessionStorage.setItem('userName', `${formData.vorname} ${formData.nachname}`.trim() || formData.gewerbeName || 'Experte');
       sessionStorage.setItem('equiconnect-founding-info-pending', '1');
       alert('Konto erstellt. Du bist jetzt eingeloggt und kannst dein Profil direkt nutzen.');
-      window.location.href = '/abo?onboarding=1&role=experte';
+      window.location.href = '/';
     } catch (err) {
       console.error('Profil-Einreichungsfehler:', err);
       alert('Ein Fehler bei der Profileinreichung ist aufgetreten.');

@@ -4,67 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import NotificationBell from './components/notification-bell';
+import type { HomePerson, ManagedAdItem, WeeklyAdItem, WelfareCase } from './components/home-types';
 import { safeToFixed } from './lib/num';
-import { getHomeHubData, rateUser, submitAnimalWelfareStatement, submitAnimalWelfareVote, trackAdvertisingViews } from './actions';
-
-type HomePerson = {
-  id: number;
-  vorname: string;
-  nachname: string;
-  role: string;
-  verifiziert?: boolean;
-  display_name?: string | null;
-  ort?: string | null;
-  nearby_reason?: string | null;
-  rating_avg?: number;
-  rating_count?: number;
-  homepage_promoted?: boolean;
-};
-
-type WeeklyAdItem = {
-  id: number;
-  vorname: string;
-  nachname: string;
-  verifiziert?: boolean;
-  display_name?: string | null;
-  ort?: string | null;
-  label?: string | null;
-  teaser?: string | null;
-  ends_at?: string | null;
-};
-
-type ManagedAdItem = {
-  id: number;
-  title: string;
-  description?: string | null;
-  media_url: string;
-  target_url?: string | null;
-  placement_slot: 'none' | 'startseite_top' | 'startseite_sidebar';
-  placement_order: number;
-  visible_from?: string | null;
-  visible_until?: string | null;
-  vorname: string;
-  nachname: string;
-  verifiziert?: boolean;
-  display_name?: string | null;
-};
-
-type WelfareCase = {
-  id: number;
-  accused_user_id: number;
-  title: string;
-  description: string;
-  video_url: string | null;
-  accused_statement: string | null;
-  status: 'voting' | 'suspended' | 'cleared';
-  vote_end_at: string;
-  public_note: string | null;
-  accused_vorname: string;
-  accused_nachname: string;
-  yes_count: number;
-  no_count: number;
-  voted_by_viewer: boolean;
-};
+import { getHomeHubData, submitAnimalWelfareStatement, submitAnimalWelfareVote, trackAdvertisingViews } from './actions';
 
 const GUEST_START_CATEGORIES = [
   'Reitunterricht',
@@ -73,6 +15,22 @@ const GUEST_START_CATEGORIES = [
   'Therapien & Training für Reiter',
   'Therapien für Pferde',
 ];
+
+function getHomePersonName(item: Pick<HomePerson, 'display_name' | 'vorname' | 'nachname'>) {
+  return item.display_name || `${item.vorname} ${item.nachname}`;
+}
+
+function getWelfareStatusLabel(status: WelfareCase['status']) {
+  if (status === 'voting') return 'Abstimmung';
+  if (status === 'suspended') return 'Sanktioniert';
+  return 'Nicht bestätigt';
+}
+
+function getWelfareStatusClassName(status: WelfareCase['status']) {
+  if (status === 'voting') return 'bg-amber-100 text-amber-700';
+  if (status === 'suspended') return 'bg-red-100 text-red-700';
+  return 'bg-emerald-100 text-emerald-700';
+}
 
 export default function Startseite() {
   const [role, setRole] = useState<string | null>(null);
@@ -260,12 +218,12 @@ export default function Startseite() {
         if (!isActive) return;
 
         if (hubRes.success) {
-          setViewerProfileOrt((hubRes as any).viewerOrt || null);
-          setNewcomers((hubRes.newcomers || []) as HomePerson[]);
-          setTopTen((hubRes.topTen || []) as HomePerson[]);
-          setWeeklyAds((hubRes.weeklyAds || []) as WeeklyAdItem[]);
-          setManagedAds((hubRes.managedAds || []) as ManagedAdItem[]);
-          setWallOfShame((hubRes.wallOfShame || []) as WelfareCase[]);
+          setViewerProfileOrt(hubRes.viewerOrt || null);
+          setNewcomers(hubRes.newcomers as HomePerson[]);
+          setTopTen(hubRes.topTen as HomePerson[]);
+          setWeeklyAds(hubRes.weeklyAds as WeeklyAdItem[]);
+          setManagedAds(hubRes.managedAds as ManagedAdItem[]);
+          setWallOfShame(hubRes.wallOfShame as WelfareCase[]);
         } else {
           setNewcomers([]);
           setTopTen([]);
@@ -296,12 +254,12 @@ export default function Startseite() {
   const reloadHub = async () => {
     const hubRes = await getHomeHubData(userId);
     if (!hubRes.success) return;
-    setViewerProfileOrt((hubRes as any).viewerOrt || null);
-    setNewcomers((hubRes.newcomers || []) as HomePerson[]);
-    setTopTen((hubRes.topTen || []) as HomePerson[]);
-    setWeeklyAds((hubRes.weeklyAds || []) as WeeklyAdItem[]);
-    setManagedAds((hubRes.managedAds || []) as ManagedAdItem[]);
-    setWallOfShame((hubRes.wallOfShame || []) as WelfareCase[]);
+    setViewerProfileOrt(hubRes.viewerOrt || null);
+    setNewcomers(hubRes.newcomers as HomePerson[]);
+    setTopTen(hubRes.topTen as HomePerson[]);
+    setWeeklyAds(hubRes.weeklyAds as WeeklyAdItem[]);
+    setManagedAds(hubRes.managedAds as ManagedAdItem[]);
+    setWallOfShame(hubRes.wallOfShame as WelfareCase[]);
   };
 
   useEffect(() => {
@@ -337,19 +295,6 @@ export default function Startseite() {
       return;
     }
     setStatementInputs((prev) => ({ ...prev, [caseId]: '' }));
-    await reloadHub();
-  };
-
-  const submitRating = async (ratedUserId: number, rating: number) => {
-    if (!userId) {
-      router.push('/login');
-      return;
-    }
-    const res = await rateUser({ raterUserId: userId, ratedUserId, rating });
-    if (!res.success) {
-      alert(res.error || 'Bewertung fehlgeschlagen.');
-      return;
-    }
     await reloadHub();
   };
 
@@ -398,23 +343,24 @@ export default function Startseite() {
   function HomeHubSections({ isLoggedIn }: { isLoggedIn: boolean }) {
     if (hubLoading) {
       return (
-        <section className="w-full max-w-6xl bg-white border border-slate-200 rounded-[2rem] p-8">
-          <p className="text-sm font-black uppercase tracking-widest text-slate-400">Start-Hub wird geladen...</p>
+        <section className="home-section w-full max-w-6xl p-8">
+          <p className="home-label text-sm">Start-Hub wird geladen...</p>
         </section>
       );
     }
 
+    // Primary content: recently joined profiles.
     const newcomerList = (
-      <section className="bg-white border border-slate-200 rounded-[2rem] p-6 space-y-3">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Startseite Hub</p>
-        <h2 className="text-2xl font-black italic uppercase tracking-tight text-slate-900">Newcomer</h2>
+      <section className="home-section space-y-3">
+        <p className="home-label">Startseite Hub</p>
+        <h2 className="home-section-title">Newcomer</h2>
         <div className="space-y-2">
           {newcomers.length === 0 ? (
             <p className="text-sm text-slate-500">Aktuell keine Newcomer.</p>
           ) : newcomers.map((item) => (
-            <article key={`new-${item.id}`} className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-4">
+            <article key={`new-${item.id}`} className="home-item flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-black uppercase text-slate-900">{item.display_name || `${item.vorname} ${item.nachname}`}</p>
+                <p className="text-sm font-black uppercase text-slate-900">{getHomePersonName(item)}</p>
                 <p className="text-[10px] font-black uppercase text-slate-400 mt-1">{item.role}{item.ort ? ` • ${item.ort}` : ''}</p>
               </div>
               {item.verifiziert ? <p className="text-[10px] font-black uppercase text-emerald-700">Verifiziert</p> : null}
@@ -424,14 +370,15 @@ export default function Startseite() {
       </section>
     );
 
+    // Personalised content: profiles ordered by distance when available.
     const topTenList = (
-      <section className="bg-white border border-slate-200 rounded-[2rem] p-6 space-y-3 h-fit">
-        <h2 className="text-xl font-black italic uppercase tracking-tight text-slate-900">In deiner Nähe</h2>
+      <section className="home-section space-y-3 h-fit">
+        <h2 className="home-section-title text-xl">In deiner Nähe</h2>
         <div className="space-y-2">
           {sortedTopTen.length === 0 ? (
             <p className="text-sm text-slate-500">Aktuell keine passenden Profile in deiner Nähe.</p>
           ) : sortedTopTen.map((item, idx) => (
-            <article key={`top-${item.id}`} className="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+            <article key={`top-${item.id}`} className="home-item p-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[10px] font-black uppercase text-emerald-700">#{idx + 1}</p>
                 <div className="flex flex-wrap justify-end gap-2">
@@ -439,7 +386,7 @@ export default function Startseite() {
                   {item.verifiziert ? <p className="text-[10px] font-black uppercase text-emerald-700">Verifiziert</p> : null}
                 </div>
               </div>
-              <p className="text-sm font-black uppercase text-slate-900">{item.display_name || `${item.vorname} ${item.nachname}`}</p>
+              <p className="text-sm font-black uppercase text-slate-900">{getHomePersonName(item)}</p>
               <p className="text-[10px] font-black uppercase text-slate-400">{item.role}{item.ort ? ` • ${item.ort}` : ''}</p>
               <div className="flex flex-wrap gap-2">
                 <p className="inline-flex px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-700">
@@ -457,6 +404,7 @@ export default function Startseite() {
       </section>
     );
 
+    // Commercial content: user-submitted and admin-managed advertising.
     const weeklyAdsList = weeklyAds.length === 0 ? null : (
       <section className="bg-gradient-to-r from-violet-50 via-white to-emerald-50 border border-violet-200 rounded-[2rem] p-6 space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -470,7 +418,7 @@ export default function Startseite() {
           {weeklyAds.map((item) => (
             <article key={`weekly-ad-${item.id}`} className="rounded-2xl border border-white bg-white/90 p-4 shadow-sm space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-black uppercase text-slate-900">{item.display_name || `${item.vorname} ${item.nachname}`}</p>
+                <p className="text-sm font-black uppercase text-slate-900">{getHomePersonName(item)}</p>
                 {item.verifiziert ? <span className="px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-700">Verifiziert</span> : null}
               </div>
               <p className="text-[10px] font-black uppercase text-violet-600">{item.label || 'Startseitenwerbung'}</p>
@@ -507,7 +455,7 @@ export default function Startseite() {
               <img src={item.media_url} alt={item.title} className="w-full h-40 object-cover" />
               <div className="p-4 space-y-2">
                 <p className="text-sm font-black uppercase text-slate-900">{item.title}</p>
-                <p className="text-[10px] font-black uppercase text-slate-500">{item.display_name || `${item.vorname} ${item.nachname}`}</p>
+                <p className="text-[10px] font-black uppercase text-slate-500">{getHomePersonName(item)}</p>
                 {item.description ? <p className="text-sm text-slate-700 line-clamp-3">{item.description}</p> : null}
                 {item.target_url ? (
                   <a href={item.target_url} target="_blank" rel="noreferrer" className="inline-flex px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-amber-500 text-white">
@@ -558,18 +506,18 @@ export default function Startseite() {
           </div>
         </div>
 
-        <section className="bg-white border border-slate-200 rounded-[2rem] p-6 space-y-3">
-          <h2 className="text-2xl font-black italic uppercase tracking-tight text-slate-900">News und Tipps</h2>
+        <section className="home-section space-y-3">
+          <h2 className="home-section-title">News und Tipps</h2>
           <p className="text-sm text-slate-600">Aktuelle Meldungen aus der Community mit Kontext, Rückmeldungen und Statements.</p>
           <div className="space-y-3">
             {wallOfShame.length === 0 ? (
               <p className="text-sm text-slate-500">Aktuell keine News.</p>
             ) : wallOfShame.map((item) => (
-              <article key={`wos-${item.id}`} className="p-4 rounded-2xl border border-slate-200 bg-slate-50 space-y-3">
+              <article key={`wos-${item.id}`} className="home-item p-4 space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-black uppercase text-slate-900">{item.title}</p>
-                  <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${item.status === 'voting' ? 'bg-amber-100 text-amber-700' : item.status === 'suspended' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                    {item.status === 'voting' ? 'Abstimmung' : item.status === 'suspended' ? 'Sanktioniert' : 'Nicht bestätigt'}
+                  <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${getWelfareStatusClassName(item.status)}`}>
+                    {getWelfareStatusLabel(item.status)}
                   </span>
                 </div>
                 <p className="text-[10px] font-black uppercase text-slate-400">Betroffene Person: {item.accused_vorname} {item.accused_nachname}</p>
@@ -622,7 +570,7 @@ export default function Startseite() {
   // --- LAYOUT A: FÜR EINGELOGGTE ---
   if (role) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+      <div className="home-page">
         <div className={`fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] transition-opacity ${sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setSidebarOpen(false)} />
         <aside className={`fixed left-0 top-0 h-full w-80 bg-white z-[70] shadow-2xl transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} p-8 flex flex-col`}>
           <div className="flex justify-between items-center mb-10 text-emerald-600 font-black italic tracking-tighter">MENÜ <button onClick={() => setSidebarOpen(false)} className="text-slate-300">×</button></div>
@@ -682,7 +630,7 @@ export default function Startseite() {
           </div>
         </header>
 
-        <main className="flex-grow p-6 space-y-8 flex flex-col items-center">
+        <main className="home-main">
           <HomeHubSections isLoggedIn={true} />
         </main>
       </div>
@@ -691,7 +639,7 @@ export default function Startseite() {
 
   // --- LAYOUT B: GÄSTE ---
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+    <div className="home-page">
       <header className="bg-white border-b px-8 py-5 flex items-center gap-4 sticky top-0 z-50">
         <div className="flex flex-col">
           <span className="font-black text-emerald-600 text-2xl tracking-tighter italic uppercase">Equily</span>
@@ -703,7 +651,7 @@ export default function Startseite() {
           <Link href="/registrieren" className="px-6 py-2 bg-emerald-600 text-white rounded-xl text-xs font-black uppercase italic shadow-lg">Registrieren</Link>
         </div>
       </header>
-      <main className="flex-grow p-6 space-y-8 flex flex-col items-center">
+      <main className="home-main">
         <section className="w-full max-w-6xl text-center space-y-6">
           <h1 className="text-5xl md:text-7xl font-black italic tracking-tight uppercase text-slate-900">
             Finde dein Match

@@ -2568,8 +2568,19 @@ export async function sendPublicContactMessage(params: any): Promise<{
 }
 
 // ==================== HOME & GAMIFICATION ====================
-export async function getHomeHubData(userId: number | null): Promise<any> {
-  return { success: true, data: {}, newcomers: [], topTen: [], weeklyAds: [], managedAds: [], wallOfShame: [] } as any;
+export type HomeHubData = {
+  success: boolean;
+  data: Record<string, unknown>;
+  viewerOrt?: string | null;
+  newcomers: Array<Record<string, unknown>>;
+  topTen: Array<Record<string, unknown>>;
+  weeklyAds: Array<Record<string, unknown>>;
+  managedAds: Array<Record<string, unknown>>;
+  wallOfShame: Array<Record<string, unknown>>;
+};
+
+export async function getHomeHubData(userId: number | null): Promise<HomeHubData> {
+  return { success: true, data: {}, newcomers: [], topTen: [], weeklyAds: [], managedAds: [], wallOfShame: [] };
 }
 
 export async function submitAnimalWelfareStatement(userIdOrObj: number | { userId?: number; caseId?: number; data?: any; statement?: string }, data?: any): Promise<any> {

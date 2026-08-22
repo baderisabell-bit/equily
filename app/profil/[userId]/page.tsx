@@ -3363,9 +3363,6 @@ useEffect(() => {
                     Hol dir mehr Sichtbarkeit! Hier kannst du deine eigene Werbung für die Startseite erstellen.
                   </p>
                 </div>
-                <Link href="/abo" className="px-3 py-2 rounded-xl text-[10px] font-black uppercase border border-slate-300 text-slate-700 bg-white">
-                  Abo buchen / wechseln
-                </Link>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2">
@@ -3377,14 +3374,6 @@ useEffect(() => {
                 )}
               </div>
 
-              {isOwnProfile && !isExpertAboActive && (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 flex items-center justify-between gap-3 flex-wrap">
-                  <p className="text-[11px] font-bold text-amber-800">Werbung mit dem Experten Premium-Abo freischalten.</p>
-                  <Link href="/abo" className="px-3 py-2 rounded-xl text-[10px] font-black uppercase border border-amber-300 bg-white text-amber-800">
-                    Abo aktivieren
-                  </Link>
-                </div>
-              )}
             </section>
           </section>
         )}

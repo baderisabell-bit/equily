@@ -6,7 +6,7 @@
     "dev": "next dev --webpack -H 0.0.0.0 -p 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint .",
     "db:backup": "bash scripts/db-backup.sh",
     "db:migrate": "bash scripts/run-db-migration.sh"
   },
@@ -15,8 +15,7 @@
     "bcrypt": "^6.0.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.563.0",
-    "next": "16.1.6",
-    "nodemailer": "^6.9.15",
+    "next": "16.3.2",
     "pg": "^8.18.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",

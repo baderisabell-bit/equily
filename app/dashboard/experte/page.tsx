@@ -95,7 +95,6 @@ export default function ExpertDashboardPage() {
 
           <div className="md:col-span-5 bg-slate-950 rounded-[2rem] p-6 text-white flex justify-between items-center">
             <div><p className="text-[9px] font-black uppercase text-emerald-400 mb-1">Status</p><h3 className="text-xl font-black italic uppercase">{analytics?.planLabel || "Premium Experte"}</h3></div>
-            <button onClick={() => router.push('/abo')} className="px-4 py-2 bg-white/10 rounded-xl text-[9px] font-black uppercase border border-white/10">Plan</button>
           </div>
 
           <div className="md:col-span-2 bg-white rounded-[2rem] p-6 border border-slate-100 flex flex-col justify-center text-center">
