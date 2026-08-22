@@ -1044,18 +1044,156 @@ export async function registerUser(data: any): Promise<any> {
   }
 }
 
-export async function requestPasswordReset(email: string): Promise<any> {
-  return { success: true, message: 'Anfrage verarbeitet', devResetUrl: null, error: null } as any;
+type PasswordResetResult = {
+  success: boolean;
+  error?: string;
+  message?: string;
+  valid?: boolean;
+  devResetUrl?: string | null;
+};
+
+function hashPasswordResetToken(token: string) {
+  return crypto.createHash('sha256').update(token).digest('hex');
 }
 
-export async function validatePasswordResetToken(token: string): Promise<any> {
-  return { success: false, valid: false } as any;
+async function ensurePasswordResetSchema() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at TIMESTAMP NOT NULL,
+      used_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS password_reset_attempts (
+      id SERIAL PRIMARY KEY,
+      email TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
 }
 
-export async function resetPasswordWithToken(tokenOrObj: string | { token?: string; newPassword?: string; password?: string; confirmPassword?: string }, newPassword?: string): Promise<any> {
-  const token = typeof tokenOrObj === 'object' ? tokenOrObj.token : tokenOrObj;
-  const pwd = typeof tokenOrObj === 'object' ? (tokenOrObj.newPassword || tokenOrObj.password) : newPassword;
-  return { success: false } as any;
+function getPasswordResetUrl(token: string) {
+  const appUrl = String(process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+  return `${appUrl}/passwort-zuruecksetzen?token=${encodeURIComponent(token)}`;
+}
+
+export async function requestPasswordReset(email: string): Promise<PasswordResetResult> {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const genericMessage = 'Wenn ein Konto mit dieser E-Mail existiert, wurde ein Reset-Link versendet.';
+  if (!normalizedEmail || !normalizedEmail.includes('@')) {
+    return { success: false, error: 'Bitte eine gültige E-Mail-Adresse eingeben.' };
+  }
+
+  try {
+    await ensurePasswordResetSchema();
+    const recentAttempts = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM password_reset_attempts
+      WHERE lower(email) = $1 AND created_at > NOW() - ($2 * INTERVAL '1 minute')`,
+          [normalizedEmail, PASSWORD_RESET_WINDOW_MINUTES]
+    );
+    if (Number(recentAttempts.rows[0]?.count || 0) >= PASSWORD_RESET_MAX_ATTEMPTS) {
+      return { success: false, error: 'Zu viele Anfragen. Bitte später erneut versuchen.' };
+    }
+    await pool.query('INSERT INTO password_reset_attempts (email) VALUES ($1)', [normalizedEmail]);
+
+    const userResult = await pool.query(
+      `SELECT u.id, COALESCE(up.display_name, u.name, u.email) AS display_name
+       FROM users u LEFT JOIN user_profiles up ON up.user_id = u.id
+       WHERE lower(u.email) = $1 LIMIT 1`,
+      [normalizedEmail]
+    );
+    const user = userResult.rows[0];
+    if (!user) return { success: true, message: genericMessage, devResetUrl: null };
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = hashPasswordResetToken(token);
+    await pool.query('UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL', [user.id]);
+    await pool.query(
+      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+       VALUES ($1, $2, NOW() + INTERVAL '15 minutes')`,
+      [user.id, tokenHash]
+    );
+
+    const resetUrl = getPasswordResetUrl(token);
+    const templateId = Number(process.env.BREVO_PASSWORD_RESET_TEMPLATE_ID || 0);
+    if (!templateId) {
+      console.error('Password reset unavailable: BREVO_PASSWORD_RESET_TEMPLATE_ID is not configured.');
+      return { success: false, error: 'Der Passwort-Reset ist noch nicht vollständig konfiguriert.' };
+    }
+
+    const mailResult = await sendBrevoTemplate(templateId, normalizedEmail, String(user.display_name || ''), {
+      RESET_URL: resetUrl,
+      RESET_LINK: resetUrl,
+      USER_NAME: String(user.display_name || ''),
+      EXPIRES_MINUTES: 15,
+    });
+    if (!mailResult.success) {
+      console.error('Password reset mail failed:', mailResult.error || mailResult);
+      return { success: false, error: 'Der Reset-Link konnte nicht versendet werden.' };
+    }
+
+    return { success: true, message: genericMessage, devResetUrl: null };
+  } catch (error: any) {
+    console.error('requestPasswordReset error:', error);
+    return { success: false, error: 'Der Passwort-Reset konnte nicht gestartet werden.' };
+  }
+}
+
+export async function validatePasswordResetToken(token: string): Promise<PasswordResetResult> {
+  const normalizedToken = String(token || '').trim();
+  if (!/^[a-f0-9]{64}$/i.test(normalizedToken)) return { success: true, valid: false };
+  try {
+    await ensurePasswordResetSchema();
+    const result = await pool.query(
+      `SELECT id FROM password_reset_tokens
+       WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW() LIMIT 1`,
+      [hashPasswordResetToken(normalizedToken)]
+    );
+    return { success: true, valid: result.rows.length > 0 };
+  } catch (error) {
+    console.error('validatePasswordResetToken error:', error);
+    return { success: false, valid: false, error: 'Der Reset-Link konnte nicht geprüft werden.' };
+  }
+}
+
+export async function resetPasswordWithToken(tokenOrObj: string | { token?: string; newPassword?: string; password?: string; confirmPassword?: string }, newPassword?: string): Promise<PasswordResetResult> {
+  const token = String(typeof tokenOrObj === 'object' ? tokenOrObj.token || '' : tokenOrObj || '').trim();
+  const password = String(typeof tokenOrObj === 'object' ? tokenOrObj.newPassword || tokenOrObj.password || '' : newPassword || '');
+  const confirmation = typeof tokenOrObj === 'object' ? String(tokenOrObj.confirmPassword || '') : password;
+  if (!/^[a-f0-9]{64}$/i.test(token)) return { success: false, error: 'Der Reset-Link ist ungültig oder abgelaufen.' };
+  if (password.length < 8) return { success: false, error: 'Das Passwort muss mindestens 8 Zeichen lang sein.' };
+  if (password !== confirmation) return { success: false, error: 'Die Passwörter stimmen nicht überein.' };
+
+  try {
+    await ensurePasswordResetSchema();
+    const tokenResult = await pool.query(
+      `SELECT id, user_id FROM password_reset_tokens
+       WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW() LIMIT 1`,
+      [hashPasswordResetToken(token)]
+    );
+    const resetToken = tokenResult.rows[0];
+    if (!resetToken) return { success: false, error: 'Der Reset-Link ist ungültig oder abgelaufen.' };
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const columnsResult = await pool.query(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'users'
+       AND column_name IN ('password_hash', 'password_digest', 'hashed_password', 'password', 'passhash')`
+    );
+    const passwordColumn = ['password_hash', 'password_digest', 'hashed_password', 'password', 'passhash']
+      .find((column) => columnsResult.rows.some((row: { column_name: string }) => row.column_name === column));
+    if (!passwordColumn) return { success: false, error: 'Passwortspeicherung ist nicht konfiguriert.' };
+    await pool.query(`UPDATE users SET ${passwordColumn} = $1 WHERE id = $2`, [passwordHash, resetToken.user_id]);
+    await pool.query('UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1', [resetToken.id]);
+    return { success: true };
+  } catch (error: any) {
+    console.error('resetPasswordWithToken error:', error);
+    return { success: false, error: 'Das Passwort konnte nicht gespeichert werden.' };
+  }
 }
 
 export async function deleteOwnAccount(arg1: number | { userId?: number; confirmation?: string; currentPassword?: string }): Promise<any> {
